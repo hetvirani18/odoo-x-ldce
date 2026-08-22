@@ -56,6 +56,14 @@ export const tripsApi = api.injectEndpoints({
                 { type: 'Trip', id: 'LIST' },
             ],
         }),
+        uploadTripPhoto: build.mutation({
+            query: ({ id, formData }) => ({ url: `/trips/${id}/photo`, method: 'POST', body: formData }),
+            transformResponse: (res) => res.data,
+            invalidatesTags: (result, error, { id }) => [
+                { type: 'Trip', id },
+                { type: 'Trip', id: 'LIST' },
+            ],
+        }),
     }),
 });
 
@@ -67,4 +75,5 @@ export const {
     useDeleteTripMutation,
     useShareTripMutation,
     useUnshareTripMutation,
+    useUploadTripPhotoMutation,
 } = tripsApi;

@@ -236,9 +236,11 @@ export default function ProfilePage() {
                         {upcoming.map((t, i) => (
                             <TripCard
                                 key={t.id}
+                                id={t.id}
                                 name={t.name}
                                 dates={formatDateRange(t.start_date, t.end_date)}
                                 status={STATUS_LABEL[getTripStatus(t.start_date, t.end_date)]}
+                                photoUrl={t.cover_photo_url}
                                 tone={TONES[i % TONES.length]}
                                 index={i}
                                 onView={() => navigate(`/trips/${t.id}`)}
@@ -255,9 +257,11 @@ export default function ProfilePage() {
                         {past.map((t, i) => (
                             <TripCard
                                 key={t.id}
+                                id={t.id}
                                 name={t.name}
                                 dates={formatDateRange(t.start_date, t.end_date)}
                                 status={STATUS_LABEL.completed}
+                                photoUrl={t.cover_photo_url}
                                 tone={TONES[i % TONES.length]}
                                 index={i}
                                 onView={() => navigate(`/trips/${t.id}`)}

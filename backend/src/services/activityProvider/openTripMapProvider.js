@@ -12,6 +12,26 @@ const CATEGORY_KIND_MAP = {
     culture: 'cultural,historic',
 };
 
+// Reverse lookup: OpenTripMap tags each place with its own `kinds` taxonomy
+// (comma-separated), independent of which `kinds` filter the search used.
+// Check more specific categories before the broad 'interesting_places' bucket.
+const KIND_TAG_TO_CATEGORY = [
+    ['foods', 'food'],
+    ['sport', 'adventure'],
+    ['amusements', 'adventure'],
+    ['cultural', 'culture'],
+    ['historic', 'culture'],
+    ['interesting_places', 'sightseeing'],
+];
+
+function categoryFromKinds(kindsString, fallback) {
+    const tags = (kindsString || '').split(',');
+    for (const [tag, category] of KIND_TAG_TO_CATEGORY) {
+        if (tags.includes(tag)) return category;
+    }
+    return fallback;
+}
+
 /**
  * @param {string} cityName
  * @param {{ category?: string, maxCost?: number }} [filters]
@@ -57,17 +77,15 @@ async function search(cityName, filters = {}) {
 
         const results = (placesRes.data || []).map((place) => ({
             name: place.name || 'Local Attraction',
-            category: filters.category || 'sightseeing',
-            cost: 0,
-            duration_hours: 2.0,
+            category: categoryFromKinds(place.kinds, filters.category || 'sightseeing'),
+            cost: null, // OpenTripMap doesn't provide pricing; unknown, not free
+            duration_hours: null,
             description: place.wikipedia_extracts?.text || `Popular attraction in ${cityName}`,
             image_url: place.preview?.source || null,
         }));
 
-        if (filters.maxCost !== undefined && filters.maxCost !== null) {
-            return results.filter((r) => r.cost <= Number(filters.maxCost));
-        }
-
+        // maxCost filtering happens downstream in activity.service.js, once a
+        // real/estimated cost has been assigned (this provider doesn't know price).
         return results;
     } catch (error) {
         throw ERRORS.ACTIVITY_PROVIDER_UNAVAILABLE;

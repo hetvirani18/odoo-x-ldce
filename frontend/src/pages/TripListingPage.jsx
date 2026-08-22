@@ -35,10 +35,12 @@ function TripGroup({ title, trips, onNavigate }) {
                 {trips.map((t, i) => (
                     <TripCard
                         key={t.id}
+                        id={t.id}
                         name={t.name}
                         dates={t.displayDates}
                         status={t.status}
                         cities={t.cities}
+                        photoUrl={t.cover_photo_url}
                         tone={t.tone}
                         index={i}
                         onView={() => onNavigate(`/trips/${t.id}`)}

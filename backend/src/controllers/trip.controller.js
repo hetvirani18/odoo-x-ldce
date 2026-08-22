@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const TripRepository = require('../repositories/trip.repository');
 const { toTripView } = require('../models/trip.model');
 const { ERRORS } = require('../utils/AppError');
+const photoService = require('../services/photo.service');
 
 async function createTrip(userId, body) {
     if (new Date(body.end_date) < new Date(body.start_date)) {
@@ -97,10 +98,36 @@ async function deleteTrip(tripId, requestingUserId) {
     await TripRepository.deleteById(tripId);
 }
 
+/**
+ * Upload and set a new cover photo for a trip
+ * @param {number} tripId
+ * @param {number} requestingUserId
+ * @param {Express.Multer.File} file
+ */
+async function uploadCoverPhoto(tripId, requestingUserId, file) {
+    if (!file) {
+        throw ERRORS.FILE_REQUIRED;
+    }
+
+    const trip = await TripRepository.findById(tripId);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    if (trip.cover_photo_url) {
+        await photoService.deletePhoto(trip.cover_photo_url);
+    }
+
+    const { url } = await photoService.uploadPhoto(file.buffer, file.mimetype);
+    const updatedTrip = await TripRepository.update(tripId, { coverPhotoUrl: url });
+    return toTripView(updatedTrip);
+}
+
 module.exports = {
     createTrip,
     listTrips,
     getTrip,
     updateTrip,
     deleteTrip,
+    uploadCoverPhoto,
 };

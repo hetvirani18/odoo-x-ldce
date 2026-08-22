@@ -65,8 +65,8 @@ async function getActivitiesForCity(cityId, filters = {}) {
                     cityId,
                     name: item.name,
                     category: item.category || 'sightseeing',
-                    cost: item.cost || (item.category === 'food' ? 40 : 25),
-                    durationHours: item.duration_hours || 2.0,
+                    cost: item.cost ?? (item.category === 'food' ? 40 : 25),
+                    durationHours: item.duration_hours ?? 2.0,
                     description: item.description,
                     imageUrl: item.image_url,
                 });

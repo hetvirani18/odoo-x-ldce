@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button, Field, Input } from '../components/ui/ui.jsx';
@@ -228,13 +228,19 @@ export default function BuildItineraryPage() {
 
     const [isAdding, setIsAdding] = useState(false);
     const [citySearch, setCitySearch] = useState('');
+    const [debouncedCitySearch, setDebouncedCitySearch] = useState('');
     const [selectedCity, setSelectedCity] = useState(null);
     const [stopStart, setStopStart] = useState('');
     const [stopEnd, setStopEnd] = useState('');
     const [errorMessage, setErrorMessage] = useState(null);
 
-    const { data: cityResults = [] } = useSearchCitiesQuery(citySearch, {
-        skip: !citySearch || citySearch.length < 2,
+    useEffect(() => {
+        const timeout = setTimeout(() => setDebouncedCitySearch(citySearch), 350);
+        return () => clearTimeout(timeout);
+    }, [citySearch]);
+
+    const { data: cityResults = [] } = useSearchCitiesQuery(debouncedCitySearch, {
+        skip: !debouncedCitySearch || debouncedCitySearch.length < 2,
     });
 
     const handleOpenAdd = () => {

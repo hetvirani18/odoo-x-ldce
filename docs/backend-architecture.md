@@ -142,7 +142,9 @@ All routers mount under `/api/...`. Middleware chain order (guide §12):
 | POST | `/api/trips/:tripId/stops` | authed, owner | Add a stop: city_id, start_date, end_date |
 | PUT | `/api/stops/:id` | authed, owner | Update dates or reorder (`order_index`) |
 | DELETE | `/api/stops/:id` | authed, owner | Remove a stop |
+| PUT | `/api/trips/:tripId/stops/reorder` | authed, owner | Bulk reorder stops (`stop_ids` array) |
 | POST | `/api/stops/:id/activities` | authed, owner | Assign an activity to this stop (activity_id, scheduled_date, scheduled_time) |
+| PUT | `/api/stops/:id/activities/:activityId` | authed, owner | Update/reschedule an assigned activity |
 | DELETE | `/api/stops/:id/activities/:activityId` | authed, owner | Remove an activity from this stop |
 
 ### 3.5 Cities — `/api/cities`

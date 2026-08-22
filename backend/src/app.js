@@ -19,6 +19,12 @@ app.get('/api/health', (req, res) => {
     res.json(successResponse({ status: 'ok' }, 'GlobeTrotter API is running'));
 });
 
+const { stopRouter } = require('./routes/stop.route');
+
+// Routers get mounted here as each module is built:
+// app.use('/api/auth', require('./routes/auth.route'));
+app.use('/api/trips', require('./routes/trip.route'));
+app.use('/api/stops', stopRouter);
 // Routers
 app.use('/api/auth', require('./routes/auth.route'));
 app.use('/api/users', require('./routes/user.route'));

@@ -1,0 +1,222 @@
+const TripRepository = require('../repositories/trip.repository');
+const StopRepository = require('../repositories/stop.repository');
+const CityRepository = require('../repositories/city.repository');
+const { toStopView } = require('../models/stop.model');
+const { ERRORS } = require('../utils/AppError');
+
+function formatYMD(dateVal) {
+    if (!dateVal) return dateVal;
+    if (typeof dateVal === 'string') return dateVal.split('T')[0].split(' ')[0];
+    if (dateVal instanceof Date) {
+        const year = dateVal.getFullYear();
+        const month = String(dateVal.getMonth() + 1).padStart(2, '0');
+        const day = String(dateVal.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return String(dateVal);
+}
+
+async function addStop(tripId, requestingUserId, body) {
+    const trip = await TripRepository.findById(tripId);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    await CityRepository.findById(body.city_id);
+
+    if (new Date(body.end_date) < new Date(body.start_date)) {
+        throw ERRORS.INVALID_DATE_RANGE;
+    }
+
+    const tripStart = formatYMD(trip.start_date);
+    const tripEnd = formatYMD(trip.end_date);
+
+    if (body.start_date < tripStart || body.end_date > tripEnd) {
+        throw ERRORS.INVALID_DATE_RANGE;
+    }
+
+    const stop = await StopRepository.create({
+        tripId,
+        cityId: body.city_id,
+        startDate: body.start_date,
+        endDate: body.end_date,
+        orderIndex: body.order_index,
+    });
+
+    return toStopView(stop);
+}
+
+async function listStops(tripId, requestingUserId) {
+    const trip = await TripRepository.findById(tripId);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    const stops = await StopRepository.findByTripId(tripId);
+    return stops.map(toStopView);
+}
+
+async function updateStop(stopId, requestingUserId, body) {
+    const stop = await StopRepository.findById(stopId);
+    const trip = await TripRepository.findById(stop.trip_id);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    if (body.city_id !== undefined) {
+        await CityRepository.findById(body.city_id);
+    }
+
+    const currentStart = formatYMD(stop.start_date);
+    const currentEnd = formatYMD(stop.end_date);
+    const startDate = body.start_date ?? currentStart;
+    const endDate = body.end_date ?? currentEnd;
+
+    if (new Date(endDate) < new Date(startDate)) {
+        throw ERRORS.INVALID_DATE_RANGE;
+    }
+
+    const tripStart = formatYMD(trip.start_date);
+    const tripEnd = formatYMD(trip.end_date);
+
+    if (startDate < tripStart || endDate > tripEnd) {
+        throw ERRORS.INVALID_DATE_RANGE;
+    }
+
+    const updated = await StopRepository.update(stopId, {
+        startDate: body.start_date,
+        endDate: body.end_date,
+        orderIndex: body.order_index,
+        cityId: body.city_id,
+    });
+
+    return toStopView(updated);
+}
+
+async function deleteStop(stopId, requestingUserId) {
+    const stop = await StopRepository.findById(stopId);
+    const trip = await TripRepository.findById(stop.trip_id);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    await StopRepository.deleteById(stopId);
+}
+
+async function reorderStops(tripId, requestingUserId, body) {
+    const trip = await TripRepository.findById(tripId);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    const currentStops = await StopRepository.findByTripId(tripId);
+    const currentStopIds = new Set(currentStops.map((s) => s.id));
+
+    // Validate that payload covers all stops on the trip without missing or duplicate IDs
+    if (
+        body.stop_ids.length !== currentStops.length ||
+        new Set(body.stop_ids).size !== body.stop_ids.length ||
+        !body.stop_ids.every((id) => currentStopIds.has(id))
+    ) {
+        throw ERRORS.VALIDATION_ERROR;
+    }
+
+    for (let i = 0; i < body.stop_ids.length; i++) {
+        await StopRepository.updateOrderIndex(body.stop_ids[i], i);
+    }
+
+    const updatedStops = await StopRepository.findByTripId(tripId);
+    return updatedStops.map(toStopView);
+}
+
+const ActivityRepository = require('../repositories/activity.repository');
+const TripActivityRepository = require('../repositories/tripActivity.repository');
+const { toTripActivityView } = require('../models/tripActivity.model');
+
+async function addActivityToStop(stopId, requestingUserId, body) {
+    const stop = await StopRepository.findById(stopId);
+    const trip = await TripRepository.findById(stop.trip_id);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    const activity = await ActivityRepository.findById(body.activity_id);
+    if (activity.city_id !== stop.city_id) {
+        throw ERRORS.ACTIVITY_NOT_IN_CITY;
+    }
+
+    const stopStart = formatYMD(stop.start_date);
+    const stopEnd = formatYMD(stop.end_date);
+
+    if (body.scheduled_date < stopStart || body.scheduled_date > stopEnd) {
+        throw ERRORS.INVALID_DATE_RANGE;
+    }
+
+    const assigned = await TripActivityRepository.create({
+        stopId,
+        activityId: body.activity_id,
+        scheduledDate: body.scheduled_date,
+        scheduledTime: body.scheduled_time,
+    });
+
+    return toTripActivityView(assigned);
+}
+
+async function listStopActivities(stopId, requestingUserId) {
+    const stop = await StopRepository.findById(stopId);
+    const trip = await TripRepository.findById(stop.trip_id);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    const activities = await TripActivityRepository.findByStopId(stopId);
+    return activities.map(toTripActivityView);
+}
+
+async function updateStopActivity(stopId, activityId, requestingUserId, body) {
+    const stop = await StopRepository.findById(stopId);
+    const trip = await TripRepository.findById(stop.trip_id);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    const assignment = await TripActivityRepository.findByStopAndActivity(stopId, activityId);
+
+    if (body.scheduled_date !== undefined) {
+        const stopStart = formatYMD(stop.start_date);
+        const stopEnd = formatYMD(stop.end_date);
+        if (body.scheduled_date < stopStart || body.scheduled_date > stopEnd) {
+            throw ERRORS.INVALID_DATE_RANGE;
+        }
+    }
+
+    const updated = await TripActivityRepository.update(assignment.id, {
+        scheduledDate: body.scheduled_date,
+        scheduledTime: body.scheduled_time,
+    });
+
+    return toTripActivityView(updated);
+}
+
+async function removeActivityFromStop(stopId, activityId, requestingUserId) {
+    const stop = await StopRepository.findById(stopId);
+    const trip = await TripRepository.findById(stop.trip_id);
+    if (trip.user_id !== requestingUserId) {
+        throw ERRORS.TRIP_NOT_OWNED;
+    }
+
+    await TripActivityRepository.findByStopAndActivity(stopId, activityId);
+    await TripActivityRepository.deleteByStopAndActivity(stopId, activityId);
+}
+
+module.exports = {
+    addStop,
+    listStops,
+    updateStop,
+    deleteStop,
+    reorderStops,
+    addActivityToStop,
+    listStopActivities,
+    updateStopActivity,
+    removeActivityFromStop,
+};

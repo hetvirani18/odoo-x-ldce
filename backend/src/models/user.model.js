@@ -28,6 +28,8 @@ const TABLE_NAME = 'users';
  * @property {string} name
  * @property {string} email
  * @property {string} password_hash
+ * @property {string} [photo_url]
+ * @property {string} [language]
  * @property {'user'|'admin'} [role]
  */
 

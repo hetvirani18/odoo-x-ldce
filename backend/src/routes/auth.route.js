@@ -17,6 +17,7 @@ const SCHEMA = {
         name: z.string().min(1, 'Name is required'),
         email: z.string().email('Invalid email address'),
         password: z.string().min(6, 'Password must be at least 6 characters'),
+        photo_url: z.string().url('Invalid photo URL').optional(),
     }),
     LOGIN: z.object({
         email: z.string().email('Invalid email address'),

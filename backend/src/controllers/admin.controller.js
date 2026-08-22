@@ -1,37 +1,23 @@
-const { db } = require('../database/db');
+const adminRepo = require('../repositories/admin.repository');
 const userRepo = require('../repositories/user.repository');
 const { toUserView } = require('../models/user.model');
 
 /**
- * Fetch platform statistics and top rankings
+ * Fetch platform statistics and top rankings concurrently
  */
 async function getStats() {
-    const [[userCountRow]] = await db.query('SELECT COUNT(*) AS total_users FROM users');
-    const [[tripCountRow]] = await db.query('SELECT COUNT(*) AS total_trips FROM trips');
-
-    const [topCities] = await db.query(`
-        SELECT c.id, c.name, c.country, COUNT(s.id) AS stop_count
-        FROM cities c
-        JOIN stops s ON c.id = s.city_id
-        GROUP BY c.id
-        ORDER BY stop_count DESC
-        LIMIT 5
-    `);
-
-    const [topActivities] = await db.query(`
-        SELECT a.id, a.name, a.category, COUNT(ta.id) AS booking_count
-        FROM activities a
-        JOIN trip_activities ta ON a.id = ta.activity_id
-        GROUP BY a.id
-        ORDER BY booking_count DESC
-        LIMIT 5
-    `);
+    const [total_users, total_trips, top_cities, top_activities] = await Promise.all([
+        adminRepo.countUsers(),
+        adminRepo.countTrips(),
+        adminRepo.topCitiesByStops(5),
+        adminRepo.topActivitiesByBookings(5),
+    ]);
 
     return {
-        total_users: userCountRow ? Number(userCountRow.total_users) : 0,
-        total_trips: tripCountRow ? Number(tripCountRow.total_trips) : 0,
-        top_cities: topCities,
-        top_activities: topActivities,
+        total_users,
+        total_trips,
+        top_cities,
+        top_activities,
     };
 }
 

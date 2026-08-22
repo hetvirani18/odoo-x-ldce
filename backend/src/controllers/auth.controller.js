@@ -1,48 +1,44 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 const userRepo = require('../repositories/user.repository');
 const tokenRepo = require('../repositories/passwordResetToken.repository');
 const { sendPasswordResetEmail } = require('../services/email.service');
 const { toUserView } = require('../models/user.model');
 const { ERRORS } = require('../utils/AppError');
-const { JWT_SECRET, JWT_EXPIRES_IN, NODE_ENV, FRONTEND_URL } = require('../config/env');
+const { signAccessToken } = require('../utils/token');
+const { NODE_ENV, FRONTEND_URL } = require('../config/env');
 
 const BCRYPT_ROUNDS = 12;
 
 /**
- * Sets the httpOnly JWT cookie on response
+ * Sets the httpOnly JWT cookie on response with synchronized maxAge
  * @param {import('express').Response} res
  * @param {import('../models/user.model').User} user
  */
 function setAuthCookie(res, user) {
-    const token = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN || '7d' }
-    );
+    const { token, maxAgeMs } = signAccessToken(user);
 
     res.cookie('access_token', token, {
         httpOnly: true,
         secure: NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        maxAge: maxAgeMs,
     });
 }
 
 /**
  * Register a new user
  * @param {import('express').Response} res
- * @param {{ name: string, email: string, password: string }} input
+ * @param {{ name: string, email: string, password: string, photo_url?: string }} input
  */
-async function signup(res, { name, email, password }) {
+async function signup(res, { name, email, password, photo_url }) {
     const existing = await userRepo.findByEmail(email);
     if (existing) {
         throw ERRORS.EMAIL_ALREADY_EXISTS;
     }
 
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-    const user = await userRepo.create({ name, email, password_hash });
+    const user = await userRepo.create({ name, email, password_hash, photo_url });
 
     setAuthCookie(res, user);
     return toUserView(user);
@@ -77,16 +73,17 @@ function logout(res) {
 }
 
 /**
- * Initiate forgot password flow
+ * Initiate forgot password flow with constant-time resistance against enumeration attacks
  * @param {string} email
  */
 async function forgotPassword(email) {
     const user = await userRepo.findByEmail(email);
-    if (user) {
-        const rawToken = crypto.randomBytes(32).toString('hex');
-        const token_hash = crypto.createHash('sha256').update(rawToken).digest('hex');
-        const expires_at = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const token_hash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expires_at = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    if (user) {
         await tokenRepo.createResetToken({
             user_id: user.id,
             token_hash,
@@ -99,6 +96,9 @@ async function forgotPassword(email) {
         } catch (err) {
             console.error('Password reset email dispatch failed:', err);
         }
+    } else {
+        // Equalize execution timing to prevent email enumeration timing attacks
+        await new Promise((resolve) => setTimeout(resolve, 50));
     }
 }
 

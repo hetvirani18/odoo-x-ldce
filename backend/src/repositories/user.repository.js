@@ -24,26 +24,44 @@ async function findByEmail(email) {
 
 /**
  * Create a new user row
- * @param {{ name: string, email: string, password_hash: string, role?: string }} data
+ * @param {{ name: string, email: string, password_hash: string, photo_url?: string|null, role?: string }} data
  */
-async function create({ name, email, password_hash, role = 'user' }) {
+async function create({ name, email, password_hash, photo_url = null, role = 'user' }) {
     const [result] = await db.query(
-        'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
-        [name, email, password_hash, role]
+        'INSERT INTO users (name, email, password_hash, photo_url, role) VALUES (?, ?, ?, ?, ?)',
+        [name, email, password_hash, photo_url, role]
     );
     return findById(result.insertId);
 }
 
 /**
  * Update user profile
+ * Allows explicitly setting photo_url to null to clear the photo.
  * @param {number} id
  * @param {{ name?: string, photo_url?: string|null, language?: string }} updates
  */
 async function update(id, { name, photo_url, language }) {
-    await db.query(
-        'UPDATE users SET name = COALESCE(?, name), photo_url = COALESCE(?, photo_url), language = COALESCE(?, language) WHERE id = ?',
-        [name, photo_url, language, id]
-    );
+    const fields = [];
+    const values = [];
+
+    if (name !== undefined) {
+        fields.push('name = ?');
+        values.push(name);
+    }
+    if (photo_url !== undefined) {
+        fields.push('photo_url = ?');
+        values.push(photo_url);
+    }
+    if (language !== undefined) {
+        fields.push('language = ?');
+        values.push(language);
+    }
+
+    if (fields.length > 0) {
+        values.push(id);
+        await db.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
+    }
+
     return findById(id);
 }
 

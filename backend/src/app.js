@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -12,6 +13,7 @@ app.use(limiter);
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/api/health', (req, res) => {
     res.json(successResponse({ status: 'ok' }, 'GlobeTrotter API is running'));
@@ -23,6 +25,10 @@ const { stopRouter } = require('./routes/stop.route');
 // app.use('/api/auth', require('./routes/auth.route'));
 app.use('/api/trips', require('./routes/trip.route'));
 app.use('/api/stops', stopRouter);
+// Routers
+app.use('/api/auth', require('./routes/auth.route'));
+app.use('/api/users', require('./routes/user.route'));
+app.use('/api/admin', require('./routes/admin.route'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

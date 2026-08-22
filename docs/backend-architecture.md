@@ -40,6 +40,7 @@ src/
 ├── repositories/
 │   ├── user.repository.js
 │   ├── passwordResetToken.repository.js
+│   ├── admin.repository.js                 # platform aggregates & analytics queries
 │   ├── trip.repository.js
 │   ├── stop.repository.js
 │   ├── city.repository.js                  # includes searchByName() used by seedCityProvider
@@ -47,7 +48,8 @@ src/
 │   ├── tripActivity.repository.js
 │   └── costEstimate.repository.js
 ├── controllers/
-│   ├── auth.controller.js                  # signup, login
+│   ├── auth.controller.js                  # signup, login, logout, forgot/reset password
+│   ├── user.controller.js                  # profile management (getMe, updateMe, deleteMe)
 │   ├── trip.controller.js                  # CRUD + ownership checks
 │   ├── itinerary.controller.js              # add/reorder stops, assign activities to a stop
 │   ├── city.controller.js                  # thin wrapper over city.service.js
@@ -57,6 +59,7 @@ src/
 │   └── admin.controller.js                  # stats aggregate, user list, role management (PS Screen 13)
 ├── routes/
 │   ├── auth.route.js                        # /api/auth
+│   ├── user.route.js                        # /api/users
 │   ├── trip.route.js                        # /api/trips
 │   ├── stop.route.js                        # /api/trips/:tripId/stops, /api/stops/:id
 │   ├── city.route.js                        # /api/cities
@@ -83,13 +86,18 @@ src/
 │   │   ├── pricingProvider.interface.js
 │   │   ├── amadeusPricingProvider.js        # real: flight/hotel price estimates
 │   │   └── costIndexPricingProvider.js      # formula-based: cost_rate table × nights/days
+│   ├── photoProvider/
+│   │   ├── photoProvider.interface.js
+│   │   └── localPhotoProvider.js            # local/disk storage provider
 │   ├── city.service.js                      # picks geoDb → falls back to seed
 │   ├── activity.service.js                  # picks openTripMap → falls back to seed
 │   ├── budget.service.js                    # combines all pricing sources into one CostEstimate
+│   ├── photo.service.js                     # user profile photo uploads & storage management
 │   └── email.service.js                     # sends the forgot-password reset email (nodemailer, single provider — see BACKEND_GUIDE.md §9.5)
 └── utils/
     ├── AppError.js                          # AppError class + ERRORS catalog
     ├── response.js                          # successResponse / errorResponse
+    ├── token.js                             # JWT signing & cookie maxAge synchronization
     └── logger.js                            # simple console-based structured logger
 ```
 
@@ -111,7 +119,15 @@ All routers mount under `/api/...`. Middleware chain order (guide §12):
 | POST | `/forgot-password` | public | Body: `email`. Generates a reset token, emails a reset link. Always responds with a generic success message, regardless of whether the email exists (§4a). |
 | POST | `/reset-password` | public | Body: `token`, `new_password`. Validates the token, updates `password_hash`, marks the token used. |
 
-### 3.2 Trips — `/api/trips`
+### 3.2 Users — `/api/users`
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| GET | `/me` | authed | Retrieve authenticated user's profile |
+| PUT | `/me` | authed | Update current user's profile (name, photo_url, language) |
+| POST | `/me/photo` | authed | Upload profile photo (multipart/form-data with `photo` file), managed via `photo.service.js` |
+| DELETE | `/me` | authed | Delete account, delete stored photo, and clear auth cookie |
+
+### 3.3 Trips — `/api/trips`
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | POST | `/` | authed | Create trip (name, start_date, end_date, description) |
@@ -120,7 +136,7 @@ All routers mount under `/api/...`. Middleware chain order (guide §12):
 | PUT | `/:id` | authed, owner | Update name/dates/description/is_public |
 | DELETE | `/:id` | authed, owner | Delete trip (cascades stops, trip_activities, cost_estimates) |
 
-### 3.3 Stops / Itinerary — nested under trips
+### 3.4 Stops / Itinerary — nested under trips
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | POST | `/api/trips/:tripId/stops` | authed, owner | Add a stop: city_id, start_date, end_date |
@@ -131,27 +147,27 @@ All routers mount under `/api/...`. Middleware chain order (guide §12):
 | PUT | `/api/stops/:id/activities/:activityId` | authed, owner | Update/reschedule an assigned activity |
 | DELETE | `/api/stops/:id/activities/:activityId` | authed, owner | Remove an activity from this stop |
 
-### 3.4 Cities — `/api/cities`
+### 3.5 Cities — `/api/cities`
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/search?q=` | authed | Live search via `city.service.js` (GeoDB → seed fallback), merged with our own `cost_index` |
 
-### 3.5 Activities — nested under cities
+### 3.6 Activities — nested under cities
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/api/cities/:cityId/activities` | authed | Live search via `activity.service.js` (OpenTripMap → seed fallback); supports `?category=&maxCost=` filters |
 
-### 3.6 Budget — `/api/trips/:id/budget`
+### 3.7 Budget — `/api/trips/:id/budget`
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/` | authed, owner | Compute (or recompute) and return the trip's `CostEstimate` — transport + accommodation + activity + meal breakdown |
 
-### 3.7 Public Share — `/api/public/trips/:shareToken`
+### 3.8 Public Share — `/api/public/trips/:shareToken`
 | Method | Path | Access | Purpose |
 |---|---|---|---|
 | GET | `/` | public, no auth | Read-only itinerary view — only returned if the trip's `is_public = true` |
 
-### 3.8 Admin — `/api/admin` (PS Screen 13 — optional but part of the original spec)
+### 3.9 Admin — `/api/admin` (PS Screen 13 — optional but part of the original spec)
 An admin is a regular user with `role = 'admin'` (§4). Every route here is
 `authenticate` → `requireAdmin`. Login itself is **not** duplicated as a separate backend
 endpoint — admins authenticate through the same `POST /api/auth/login` as everyone else (§3.1),

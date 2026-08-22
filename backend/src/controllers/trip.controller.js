@@ -32,6 +32,9 @@ async function listTrips(userId) {
 const StopRepository = require('../repositories/stop.repository');
 const { toStopView } = require('../models/stop.model');
 
+const TripActivityRepository = require('../repositories/tripActivity.repository');
+const { toTripActivityView } = require('../models/tripActivity.model');
+
 async function getTrip(tripId, requestingUserId) {
     const trip = await TripRepository.findById(tripId);
     if (trip.user_id !== requestingUserId) {
@@ -39,7 +42,17 @@ async function getTrip(tripId, requestingUserId) {
     }
     const stops = await StopRepository.findByTripId(tripId);
     const view = toTripView(trip);
-    view.stops = stops.map(toStopView);
+
+    const stopsWithActivities = await Promise.all(
+        stops.map(async (s) => {
+            const stopView = toStopView(s);
+            const activities = await TripActivityRepository.findByStopId(s.id);
+            stopView.activities = activities.map(toTripActivityView);
+            return stopView;
+        })
+    );
+
+    view.stops = stopsWithActivities;
     return view;
 }
 

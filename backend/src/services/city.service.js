@@ -6,31 +6,53 @@ const CityRepository = require('../repositories/city.repository');
  * @param {string} query
  */
 async function searchCities(query) {
-    try {
-        const liveResults = await geoDbProvider.search(query);
-        const seededCities = await CityRepository.searchByName(query);
-        const seedMap = new Map();
-        for (const city of seededCities) {
-            seedMap.set(`${city.name.toLowerCase()}_${city.country.toLowerCase()}`, city);
-        }
-
-        return liveResults.map((c) => {
-            const key = `${c.name.toLowerCase()}_${c.country.toLowerCase()}`;
-            const seed = seedMap.get(key);
-            return {
-                id: seed ? seed.id : undefined,
-                name: c.name,
-                country: c.country,
-                lat: c.lat,
-                lng: c.lng,
-                cost_index: seed ? seed.cost_index : 'medium',
-                popularity: seed ? seed.popularity : (c.popularity || 50),
-            };
-        });
-    } catch (error) {
-        // Fall back seamlessly to seeded database records
-        return seedProvider.search(query);
+    if (!query || query.trim().length === 0) {
+        return CityRepository.getAll();
     }
+
+    const trimmed = query.trim();
+    const seededCities = await CityRepository.searchByName(trimmed);
+    const results = [...seededCities];
+
+    // 1. Try Live GeoDB Provider if available
+    try {
+        const liveResults = await geoDbProvider.search(trimmed);
+        for (const live of liveResults) {
+            const alreadyExists = results.find(
+                (r) => r.name.toLowerCase() === live.name.toLowerCase()
+            );
+            if (!alreadyExists) {
+                // Persist city into database so it receives a real database ID
+                const savedCity = await CityRepository.findOrCreate({
+                    name: live.name,
+                    country: live.country,
+                    lat: live.lat,
+                    lng: live.lng,
+                    cost_index: 'medium',
+                    popularity: live.popularity || 50,
+                });
+                results.push(savedCity);
+            }
+        }
+    } catch (error) {
+        // GeoDB provider unavailable/offline
+    }
+
+    // 2. Fallback: If city not found, dynamically create it in the database with a real ID
+    if (results.length === 0 && trimmed.length >= 2) {
+        const formattedName = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+        const newCity = await CityRepository.findOrCreate({
+            name: formattedName,
+            country: 'Global',
+            lat: null,
+            lng: null,
+            cost_index: 'medium',
+            popularity: 60,
+        });
+        results.push(newCity);
+    }
+
+    return results;
 }
 
 module.exports = { searchCities };

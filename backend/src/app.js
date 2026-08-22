@@ -12,6 +12,9 @@ const userRouter = require('./routes/user.route');
 const adminRouter = require('./routes/admin.route');
 const tripRouter = require('./routes/trip.route');
 const { stopRouter } = require('./routes/stop.route');
+const cityRouter = require('./routes/city.route');
+const activityRouter = require('./routes/activity.route');
+const publicRouter = require('./routes/public.route');
 
 const app = express();
 
@@ -31,6 +34,9 @@ app.use('/api/users', userRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/trips', tripRouter);
 app.use('/api/stops', stopRouter);
+app.use('/api/cities', cityRouter);
+app.use('/api/activities', activityRouter);
+app.use('/api/public', publicRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

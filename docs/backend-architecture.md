@@ -23,7 +23,7 @@ Express + **plain JavaScript** (no TypeScript) · `mysql2` (MySQL) · no Result/
 src/
 ├── app.js                                  # Bootstrap: json → cors → routers → notFoundHandler → errorHandler
 ├── config/
-│   └── env.js                              # ALL process.env reads (PORT, DB_*, JWT_*, FRONTEND_URL, GEODB_API_KEY, OPENTRIPMAP_API_KEY, AMADEUS_*, SMTP_*)
+│   └── env.js                              # ALL process.env reads (PORT, DB_*, JWT_*, FRONTEND_URL, GEODB_API_KEY, OPENTRIPMAP_API_KEY, FLIGHTFARE_API_KEY, SMTP_*)
 ├── database/
 │   ├── db.js                               # mysql2 Pool
 │   ├── schema.sql                          # DDL — single source of truth for table shape
@@ -84,7 +84,7 @@ src/
 │   │   └── seedActivityProvider.js          # fallback: our own seeded `activity` table
 │   ├── pricingProvider/
 │   │   ├── pricingProvider.interface.js
-│   │   ├── amadeusPricingProvider.js        # real: flight/hotel price estimates
+│   │   ├── flightFarePricingProvider.js     # distance-based (Haversine) flight fare estimate — no external API
 │   │   └── costIndexPricingProvider.js      # formula-based: cost_rate table × nights/days
 │   ├── photoProvider/
 │   │   ├── photoProvider.interface.js
@@ -111,63 +111,75 @@ All routers mount under `/api/...`. Middleware chain order (guide §12):
 `authenticate → validateRequest → handler`, all handlers wrapped in `asyncHandler`.
 
 ### 3.1 Auth — `/api/auth`
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| POST | `/signup` | public | Create user (name, email, password) → bcrypt hash → sets `access_token` cookie |
-| POST | `/login` | public | Verify credentials → sets `access_token` cookie |
-| POST | `/logout` | authed | Clears the `access_token` cookie |
-| POST | `/forgot-password` | public | Body: `email`. Generates a reset token, emails a reset link. Always responds with a generic success message, regardless of whether the email exists (§4a). |
-| POST | `/reset-password` | public | Body: `token`, `new_password`. Validates the token, updates `password_hash`, marks the token used. |
+
+| Method | Path               | Access | Purpose                                                                                                                                                    |
+| ------ | ------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/signup`          | public | Create user (name, email, password) → bcrypt hash → sets `access_token` cookie                                                                             |
+| POST   | `/login`           | public | Verify credentials → sets `access_token` cookie                                                                                                            |
+| POST   | `/logout`          | authed | Clears the `access_token` cookie                                                                                                                           |
+| POST   | `/forgot-password` | public | Body: `email`. Generates a reset token, emails a reset link. Always responds with a generic success message, regardless of whether the email exists (§4a). |
+| POST   | `/reset-password`  | public | Body: `token`, `new_password`. Validates the token, updates `password_hash`, marks the token used.                                                         |
 
 ### 3.2 Users — `/api/users`
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/me` | authed | Retrieve authenticated user's profile |
-| PUT | `/me` | authed | Update current user's profile (name, photo_url, language) |
-| POST | `/me/photo` | authed | Upload profile photo (multipart/form-data with `photo` file), managed via `photo.service.js` |
-| DELETE | `/me` | authed | Delete account, delete stored photo, and clear auth cookie |
+
+| Method | Path        | Access | Purpose                                                                                       |
+| ------ | ----------- | ------ | ---------------------------------------------------------------------------------------------- |
+| GET    | `/me`       | authed | Retrieve authenticated user's profile                                                          |
+| PUT    | `/me`       | authed | Update current user's profile (name, photo_url, language)                                      |
+| POST   | `/me/photo` | authed | Upload profile photo (multipart/form-data with `photo` file), managed via `photo.service.js`   |
+| DELETE | `/me`       | authed | Delete account, delete stored photo, and clear auth cookie                                     |
 
 ### 3.3 Trips — `/api/trips`
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| POST | `/` | authed | Create trip (name, start_date, end_date, description) |
-| GET | `/` | authed | List own trips |
-| GET | `/:id` | authed, owner | Trip detail incl. stops |
-| PUT | `/:id` | authed, owner | Update name/dates/description/is_public |
-| DELETE | `/:id` | authed, owner | Delete trip (cascades stops, trip_activities, cost_estimates) |
+
+| Method | Path          | Access        | Purpose                                                        |
+| ------ | ------------- | ------------- | --------------------------------------------------------------- |
+| POST   | `/`           | authed        | Create trip (name, start_date, end_date, description)          |
+| GET    | `/`           | authed        | List own trips                                                 |
+| GET    | `/:id`        | authed, owner | Trip detail incl. stops                                        |
+| PUT    | `/:id`        | authed, owner | Update name/dates/description/is_public                        |
+| DELETE | `/:id`        | authed, owner | Delete trip (cascades stops, trip_activities, cost_estimates)  |
+| POST   | `/:id/share`  | authed, owner | Mark trip public, generate (or reuse) its `share_token`         |
+| DELETE | `/:id/share`  | authed, owner | Revoke sharing — clears `share_token`, sets `is_public = false` |
 
 ### 3.4 Stops / Itinerary — nested under trips
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| POST | `/api/trips/:tripId/stops` | authed, owner | Add a stop: city_id, start_date, end_date |
-| PUT | `/api/stops/:id` | authed, owner | Update dates or reorder (`order_index`) |
-| DELETE | `/api/stops/:id` | authed, owner | Remove a stop |
-| PUT | `/api/trips/:tripId/stops/reorder` | authed, owner | Bulk reorder stops (`stop_ids` array) |
-| POST | `/api/stops/:id/activities` | authed, owner | Assign an activity to this stop (activity_id, scheduled_date, scheduled_time) |
-| PUT | `/api/stops/:id/activities/:activityId` | authed, owner | Update/reschedule an assigned activity |
-| DELETE | `/api/stops/:id/activities/:activityId` | authed, owner | Remove an activity from this stop |
+
+| Method | Path                                     | Access        | Purpose                                                                        |
+| ------ | ----------------------------------------- | ------------- | -------------------------------------------------------------------------------- |
+| POST   | `/api/trips/:tripId/stops`                | authed, owner | Add a stop: city_id, start_date, end_date                                      |
+| PUT    | `/api/stops/:id`                          | authed, owner | Update dates or reorder (`order_index`)                                        |
+| DELETE | `/api/stops/:id`                          | authed, owner | Remove a stop                                                                   |
+| PUT    | `/api/trips/:tripId/stops/reorder`        | authed, owner | Bulk reorder stops (`stop_ids` array)                                          |
+| POST   | `/api/stops/:id/activities`               | authed, owner | Assign an activity to this stop (activity_id, scheduled_date, scheduled_time)  |
+| PUT    | `/api/stops/:id/activities/:activityId`   | authed, owner | Update/reschedule an assigned activity                                         |
+| DELETE | `/api/stops/:id/activities/:activityId`   | authed, owner | Remove an activity from this stop                                              |
 
 ### 3.5 Cities — `/api/cities`
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/search?q=` | authed | Live search via `city.service.js` (GeoDB → seed fallback), merged with our own `cost_index` |
+
+| Method | Path         | Access | Purpose                                                                                     |
+| ------ | ------------ | ------ | ------------------------------------------------------------------------------------------- |
+| GET    | `/search?q=` | authed | Live search via `city.service.js` (GeoDB → seed fallback), merged with our own `cost_index` |
 
 ### 3.6 Activities — nested under cities
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/api/cities/:cityId/activities` | authed | Live search via `activity.service.js` (OpenTripMap → seed fallback); supports `?category=&maxCost=` filters |
 
-### 3.7 Budget — `/api/trips/:id/budget`
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/` | authed, owner | Compute (or recompute) and return the trip's `CostEstimate` — transport + accommodation + activity + meal breakdown |
+| Method | Path                              | Access | Purpose                                                                                                       |
+| ------ | ---------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/cities/:cityId/activities`  | authed | Live search via `activity.service.js` (OpenTripMap → seed fallback); supports `?category=&maxCost=` filters |
+
+### 3.7 Budget — `/api/trips/:id`
+
+| Method | Path        | Access        | Purpose                                                                                                                     |
+| ------ | ----------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/budget`   | authed, owner | Compute (or recompute) and return the trip's `CostEstimate` summary — transport + accommodation + activity + meal totals |
+| GET    | `/expenses` | authed, owner | Same computation as `/budget`, plus a per-stop itemized breakdown (used by the Budget & Cost Breakdown screen)            |
 
 ### 3.8 Public Share — `/api/public/trips/:shareToken`
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/` | public, no auth | Read-only itinerary view — only returned if the trip's `is_public = true` |
+
+| Method | Path | Access          | Purpose                                                                   |
+| ------ | ---- | --------------- | ------------------------------------------------------------------------- |
+| GET    | `/`  | public, no auth | Read-only itinerary view — only returned if the trip's `is_public = true` |
 
 ### 3.9 Admin — `/api/admin` (PS Screen 13 — optional but part of the original spec)
+
 An admin is a regular user with `role = 'admin'` (§4). Every route here is
 `authenticate` → `requireAdmin`. Login itself is **not** duplicated as a separate backend
 endpoint — admins authenticate through the same `POST /api/auth/login` as everyone else (§3.1),
@@ -238,13 +250,13 @@ one-time token stored in its own table (`password_reset_tokens`, see `docs/datab
 
 `1xxxx` common and `2xxxx` auth come from the guide. Domain-specific:
 
-| Range | Domain | Examples |
-|---|---|---|
-| 2xxxx | Auth | (from the guide) plus `RESET_TOKEN_INVALID` 20005·400, `RESET_TOKEN_EXPIRED` 20006·400, `ADMIN_ONLY_ROUTE` 20007·403 |
-| 3xxxx | Trip / Stop / Itinerary | `TRIP_NOT_FOUND` 30001·404, `STOP_NOT_FOUND` 30002·404, `TRIP_NOT_OWNED` 30003·403, `INVALID_DATE_RANGE` 30004·422 (stop dates outside trip dates) |
-| 4xxxx | City / Activity | `CITY_NOT_FOUND` 40001·404, `ACTIVITY_NOT_FOUND` 40002·404, `ACTIVITY_NOT_IN_CITY` 40003·422 |
-| 5xxxx | Budget | `BUDGET_CALC_FAILED` 50001·500 |
-| 6xxxx | External providers | `CITY_PROVIDER_UNAVAILABLE` 60001·502, `ACTIVITY_PROVIDER_UNAVAILABLE` 60002·502, `PRICING_PROVIDER_UNAVAILABLE` 60003·502, `EMAIL_SEND_FAILED` 60004·502 — all of these should be caught internally by the owning `*.service.js` and rarely actually reach the client |
+| Range | Domain                  | Examples                                                                                                                                                                                                                                                               |
+| ----- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2xxxx | Auth                    | (from the guide) plus `RESET_TOKEN_INVALID` 20005·400, `RESET_TOKEN_EXPIRED` 20006·400, `ADMIN_ONLY_ROUTE` 20007·403                                                                                                                                                   |
+| 3xxxx | Trip / Stop / Itinerary | `TRIP_NOT_FOUND` 30001·404, `STOP_NOT_FOUND` 30002·404, `TRIP_NOT_OWNED` 30003·403, `INVALID_DATE_RANGE` 30004·422 (stop dates outside trip dates)                                                                                                                     |
+| 4xxxx | City / Activity         | `CITY_NOT_FOUND` 40001·404, `ACTIVITY_NOT_FOUND` 40002·404, `ACTIVITY_NOT_IN_CITY` 40003·422                                                                                                                                                                           |
+| 5xxxx | Budget                  | `BUDGET_CALC_FAILED` 50001·500                                                                                                                                                                                                                                         |
+| 6xxxx | External providers      | `CITY_PROVIDER_UNAVAILABLE` 60001·502, `ACTIVITY_PROVIDER_UNAVAILABLE` 60002·502, `PRICING_PROVIDER_UNAVAILABLE` 60003·502, `EMAIL_SEND_FAILED` 60004·502 — all of these should be caught internally by the owning `*.service.js` and rarely actually reach the client |
 
 All added to `ERRORS` in `src/utils/AppError.js` — never inline `new AppError(...)` (guide §4).
 
@@ -252,13 +264,13 @@ All added to `ERRORS` in `src/utils/AppError.js` — never inline `new AppError(
 
 ## 6. External Services
 
-| Service | Interface | Real impl | Fallback | Config keys |
-|---|---|---|---|---|
-| City search | `search(query) → CityResult[]` | `geoDbCityProvider.js` (GeoDB Cities API) | `seedCityProvider.js` (our `cities` table) | `GEODB_API_KEY` |
-| Activity search | `search(cityName) → ActivityResult[]` | `openTripMapProvider.js` (OpenTripMap) | `seedActivityProvider.js` (our `activities` table) | `OPENTRIPMAP_API_KEY` |
-| Flight/hotel pricing | `estimate(from, to, dates) → PriceResult` | `amadeusPricingProvider.js` (Amadeus sandbox) | flat per-hop estimate constant | `AMADEUS_CLIENT_ID`, `AMADEUS_CLIENT_SECRET` |
-| Meal/accommodation pricing | `rateFor(costIndex) → { perNight, perMeal }` | — (no API covers this) | `costIndexPricingProvider.js` reads `cost_rates` table | — |
-| Password reset email | `sendPasswordResetEmail(to, resetLink)` | `email.service.js` (nodemailer/SMTP) | none — single provider, see guide §9.5 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` |
+| Service                    | Interface                                    | Real impl                                     | Fallback                                               | Config keys                                                         |
+| -------------------------- | -------------------------------------------- | --------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| City search                | `search(query) → CityResult[]`               | `geoDbCityProvider.js` (GeoDB Cities API)     | `seedCityProvider.js` (our `cities` table)             | `GEODB_API_KEY`                                                     |
+| Activity search            | `search(cityName) → ActivityResult[]`        | `openTripMapProvider.js` (OpenTripMap)        | `seedActivityProvider.js` (our `activities` table)     | `OPENTRIPMAP_API_KEY`                                               |
+| Flight/hotel pricing       | `estimateTransport(from, to, date, fromCoords, toCoords) → { cost, currency }` | `flightFarePricingProvider.js` — Haversine-distance formula (`$50 base + $0.10/km`), no external API call | flat `$120` per-hop estimate when coordinates aren't available | `FLIGHTFARE_API_KEY` (reserved for a future real provider — currently unused) |
+| Meal/accommodation pricing | `rateFor(costIndex) → { perNight, perMeal }` | — (no API covers this)                        | `costIndexPricingProvider.js` reads `cost_rates` table | —                                                                   |
+| Password reset email       | `sendPasswordResetEmail(to, resetLink)`      | `email.service.js` (nodemailer/SMTP)          | none — single provider, see guide §9.5                 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` |
 
 All providers throw a named `ERRORS.*_PROVIDER_UNAVAILABLE` (or `EMAIL_SEND_FAILED`) on failure; the owning `*.service.js` catches that and falls back — or, for email, just logs and lets the controller respond with its generic success message anyway (guide §9.5, §4a above) — rather than letting it reach the controller as an unhandled error.
 
@@ -274,7 +286,7 @@ POST /api/trips/:id/stops           → adds Stop (city_id, dates) — repeat pe
 POST /api/stops/:id/activities      → assigns Activity to a Stop, with scheduled_date/time
         │
 GET /api/trips/:id/budget           → budget.service.js walks every Stop:
-        │                               - transport_cost   += amadeusPricingProvider estimate for the hop into this city
+        │                               - transport_cost   += flightFarePricingProvider estimate for the hop into this city
         │                               - accommodation_cost += nights_at_city × per_night_rate(city.cost_index)
         │                               - activity_cost    += sum of assigned activities' cost
         │                               - meal_cost         += days_at_city × per_day_meal_rate(city.cost_index)
@@ -291,12 +303,12 @@ GET /api/trips/:id/budget           → budget.service.js walks every Stop:
 
 Given the time budget, skip a full test suite. Prioritize:
 
-| Layer | What to verify manually/quickly |
-|---|---|
-| Auth | signup → login → authenticated request round-trip works |
-| Trip/Stop/Itinerary CRUD | create trip → add 2+ stops → add activities → ownership check rejects another user's trip |
-| Budget | matches the formula in §10 of `BACKEND_GUIDE.md` for a known set of stops/activities (hand-calculate one example, compare) |
-| Service fallback | temporarily break the API key for one provider, confirm the app still returns seeded data instead of erroring |
+| Layer                    | What to verify manually/quickly                                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Auth                     | signup → login → authenticated request round-trip works                                                                    |
+| Trip/Stop/Itinerary CRUD | create trip → add 2+ stops → add activities → ownership check rejects another user's trip                                  |
+| Budget                   | matches the formula in §10 of `BACKEND_GUIDE.md` for a known set of stops/activities (hand-calculate one example, compare) |
+| Service fallback         | temporarily break the API key for one provider, confirm the app still returns seeded data instead of erroring              |
 
 If time allows, a handful of Jest tests on `budget.service.js`'s pure calculation logic (no DB, no network) give the best return for the least effort.
 

@@ -8,7 +8,7 @@ const TABLE_NAME = 'cities';
  * @property {number|null} lat
  * @property {number|null} lng
  * @property {'low'|'medium'|'high'} cost_index
- * @property {number} [popularity]
+ * @property {number} popularity
  */
 
 /**
@@ -19,6 +19,7 @@ const TABLE_NAME = 'cities';
  * @property {number|null} lat
  * @property {number|null} lng
  * @property {'low'|'medium'|'high'} cost_index
+ * @property {number} popularity
  */
 
 /**
@@ -30,9 +31,10 @@ function toCityView(row) {
         id: row.id,
         name: row.name,
         country: row.country,
-        lat: row.lat != null ? Number(row.lat) : null,
-        lng: row.lng != null ? Number(row.lng) : null,
+        lat: row.lat !== null && row.lat !== undefined ? Number(row.lat) : null,
+        lng: row.lng !== null && row.lng !== undefined ? Number(row.lng) : null,
         cost_index: row.cost_index,
+        popularity: row.popularity ?? 0,
     };
 }
 

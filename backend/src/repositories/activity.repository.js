@@ -28,4 +28,30 @@ async function findByCityId(cityId, filters = {}) {
     return rows;
 }
 
-module.exports = { findById, findByCityId };
+/**
+ * @param {string} cityName
+ * @param {{ category?: string, maxCost?: number }} [filters]
+ */
+async function searchByCityName(cityName, filters = {}) {
+    let sql = `
+        SELECT a.* FROM ${TABLE_NAME} a
+        JOIN cities c ON a.city_id = c.id
+        WHERE c.name LIKE ?
+    `;
+    const params = [`%${cityName}%`];
+
+    if (filters.category) {
+        sql += ` AND a.category = ?`;
+        params.push(filters.category);
+    }
+    if (filters.maxCost != null) {
+        sql += ` AND a.cost <= ?`;
+        params.push(filters.maxCost);
+    }
+
+    sql += ` ORDER BY a.cost ASC`;
+    const [rows] = await db.query(sql, params);
+    return rows;
+}
+
+module.exports = { findById, findByCityId, searchByCityName };

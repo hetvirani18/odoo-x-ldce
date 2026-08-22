@@ -18,6 +18,20 @@ async function findByUserId(userId) {
     return rows;
 }
 
+/**
+ * @param {string} shareToken
+ */
+async function findByShareToken(shareToken) {
+    const [rows] = await db.query(
+        `SELECT * FROM ${TABLE_NAME} WHERE share_token = ? AND is_public = 1`,
+        [shareToken]
+    );
+    if (rows.length === 0) {
+        throw ERRORS.TRIP_NOT_PUBLIC;
+    }
+    return rows[0];
+}
+
 /** @param {import('../models/trip.model').CreateTripInput} input */
 async function create(input) {
     const [result] = await db.query(
@@ -37,9 +51,9 @@ async function create(input) {
     return findById(result.insertId);
 }
 
-/** 
- * @param {number} id 
- * @param {import('../models/trip.model').UpdateTripInput} input 
+/**
+ * @param {number} id
+ * @param {import('../models/trip.model').UpdateTripInput} input
  */
 async function update(id, input) {
     const fields = [];
@@ -83,8 +97,29 @@ async function update(id, input) {
     return findById(id);
 }
 
+/**
+ * @param {number} id
+ * @param {boolean} isPublic
+ * @param {string|null} shareToken
+ */
+async function updateShareStatus(id, isPublic, shareToken) {
+    await db.query(
+        `UPDATE ${TABLE_NAME} SET is_public = ?, share_token = ? WHERE id = ?`,
+        [isPublic ? 1 : 0, shareToken, id]
+    );
+    return findById(id);
+}
+
 async function deleteById(id) {
     await db.query(`DELETE FROM ${TABLE_NAME} WHERE id = ?`, [id]);
 }
 
-module.exports = { findById, findByUserId, create, update, deleteById };
+module.exports = {
+    findById,
+    findByUserId,
+    findByShareToken,
+    create,
+    update,
+    updateShareStatus,
+    deleteById,
+};

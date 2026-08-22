@@ -11,11 +11,22 @@ async function findById(id) {
 }
 
 async function searchByName(query) {
+    const searchTerm = `%${query}%`;
     const [rows] = await db.query(
-        `SELECT * FROM ${TABLE_NAME} WHERE name LIKE ? ORDER BY popularity DESC LIMIT 20`,
-        [`%${query}%`]
+        `SELECT * FROM ${TABLE_NAME}
+         WHERE name LIKE ? OR country LIKE ?
+         ORDER BY popularity DESC, name ASC
+         LIMIT 20`,
+        [searchTerm, searchTerm]
     );
     return rows;
 }
 
-module.exports = { findById, searchByName };
+async function getAll() {
+    const [rows] = await db.query(
+        `SELECT * FROM ${TABLE_NAME} ORDER BY popularity DESC, name ASC`
+    );
+    return rows;
+}
+
+module.exports = { findById, searchByName, getAll };

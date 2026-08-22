@@ -39,6 +39,7 @@ const ERRORS = {
     STOP_NOT_FOUND:        new AppError('Stop not found', 30002, 404),
     TRIP_NOT_OWNED:        new AppError('You do not own this trip', 30003, 403),
     INVALID_DATE_RANGE:    new AppError('Invalid date range', 30004, 422),
+    TRIP_NOT_PUBLIC:       new AppError('Trip is not public or does not exist', 30005, 404),
 
     // City / Activity (4xxxx)
     CITY_NOT_FOUND:        new AppError('City not found', 40001, 404),

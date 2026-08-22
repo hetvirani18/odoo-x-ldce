@@ -8,15 +8,7 @@ import { PlaceCard } from '../components/ui/cards.jsx';
 import { IconArrowRight, IconCalendar, IconPin } from '../components/ui/icons.jsx';
 import { useCreateTripMutation } from '../features/trips/tripsApi.js';
 import { createTripSchema } from '../features/trips/schemas.js';
-
-const placeSuggestions = [
-    'Paris, France',
-    'Rome, Italy',
-    'Kyoto, Japan',
-    'Barcelona, Spain',
-    'New York, USA',
-    'Santorini, Greece',
-];
+import { useSearchCitiesQuery } from '../features/cities/citiesApi.js';
 
 const placeTones = ['coral', 'teal', 'gold', 'coral', 'teal', 'gold'];
 
@@ -32,6 +24,8 @@ export default function CreateTripPage() {
     const navigate = useNavigate();
     const [serverError, setServerError] = useState(null);
     const [createTrip, { isLoading }] = useCreateTripMutation();
+    const { data: popularCities = [], isLoading: isCitiesLoading } = useSearchCitiesQuery('');
+    const placeSuggestions = popularCities.slice(0, 6);
 
     const today = new Date();
     const defaultStart = new Date(today);
@@ -47,7 +41,7 @@ export default function CreateTripPage() {
     } = useForm({
         resolver: zodResolver(createTripSchema),
         defaultValues: {
-            name: 'Paris in Bloom',
+            name: '',
             start_date: getFormattedDate(defaultStart),
             end_date: getFormattedDate(defaultEnd),
             description: '',
@@ -71,8 +65,8 @@ export default function CreateTripPage() {
         }
     };
 
-    const handleSelectSuggestion = (place) => {
-        setValue('name', place, { shouldValidate: true });
+    const handleSelectSuggestion = (city) => {
+        setValue('name', `${city.name}, ${city.country}`, { shouldValidate: true });
     };
 
     return (
@@ -151,23 +145,29 @@ export default function CreateTripPage() {
                 </div>
             </motion.form>
 
-            <section className="mt-14 pb-16">
-                <SectionHeading
-                    eyebrow="Get inspired"
-                    title="Suggestions for places to visit / activities to perform"
-                />
-                <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                    {placeSuggestions.map((place, i) => (
-                        <PlaceCard
-                            key={place}
-                            label={place}
-                            tone={placeTones[i % placeTones.length]}
-                            index={i}
-                            onClick={() => handleSelectSuggestion(place)}
-                        />
-                    ))}
-                </div>
-            </section>
+            {(isCitiesLoading || placeSuggestions.length > 0) && (
+                <section className="mt-14 pb-16">
+                    <SectionHeading
+                        eyebrow="Get inspired"
+                        title="Popular destinations from other travelers"
+                    />
+                    {isCitiesLoading ? (
+                        <p className="mt-5 text-[13.5px] text-ink-soft">Loading suggestions…</p>
+                    ) : (
+                        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            {placeSuggestions.map((city, i) => (
+                                <PlaceCard
+                                    key={city.id}
+                                    label={`${city.name}, ${city.country}`}
+                                    tone={placeTones[i % placeTones.length]}
+                                    index={i}
+                                    onClick={() => handleSelectSuggestion(city)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
         </main>
     );
 }

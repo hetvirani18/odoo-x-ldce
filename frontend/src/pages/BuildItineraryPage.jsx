@@ -227,7 +227,7 @@ export default function BuildItineraryPage() {
     const [deleteStop] = useDeleteStopMutation();
 
     const [isAdding, setIsAdding] = useState(false);
-    const [citySearch, setCitySearch] = useState('Paris');
+    const [citySearch, setCitySearch] = useState('');
     const [selectedCity, setSelectedCity] = useState(null);
     const [stopStart, setStopStart] = useState('');
     const [stopEnd, setStopEnd] = useState('');
@@ -250,16 +250,15 @@ export default function BuildItineraryPage() {
         e.preventDefault();
         setErrorMessage(null);
 
-        const cityId = selectedCity?.id || (cityResults.length > 0 ? cityResults[0].id : null);
-        if (!cityId) {
-            setErrorMessage('Please select a valid destination city.');
+        if (!selectedCity) {
+            setErrorMessage('Please select a destination city from the suggestions list.');
             return;
         }
 
         try {
             await addStop({
                 tripId: Number(tripId),
-                city_id: cityId,
+                city_id: selectedCity.id,
                 start_date: stopStart || trip.start_date,
                 end_date: stopEnd || trip.end_date,
             }).unwrap();

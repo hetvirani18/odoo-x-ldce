@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  --color-bg: oklch(98.2% 0.007 75);
+  --color-surface: oklch(99.4% 0.003 75);
+  --color-surface-2: oklch(96.3% 0.011 75);
+  --color-ink: oklch(23% 0.025 55);
+  --color-ink-soft: oklch(45% 0.02 55);
+  --color-ink-faint: oklch(62% 0.014 55);
+  --color-border: oklch(89.5% 0.012 70);
+  --color-border-soft: oklch(93.5% 0.009 70);
+
+  --color-coral: oklch(66% 0.17 35);
+  --color-coral-ink: oklch(30% 0.1 35);
+  --color-coral-soft: oklch(93% 0.035 35);
+
+  --color-teal: oklch(52% 0.08 200);
+  --color-teal-ink: oklch(28% 0.05 200);
+  --color-teal-soft: oklch(92% 0.03 200);
+
+  --color-gold: oklch(78% 0.13 80);
+  --color-gold-ink: oklch(38% 0.09 80);
+  --color-gold-soft: oklch(94% 0.045 80);
+
+  /* Fixed — does NOT flip with theme. For decorative full-bleed panels
+     (hero banners, auth side panel) that are always a dark canvas with
+     white text, independent of light/dark mode. Never use for text/bg. */
+  --color-canvas: oklch(19% 0.018 55);
+}
+
+:root {
+  color-scheme: light;
+}
+
+/* System preference — only when the user hasn't made an explicit choice */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --color-bg: oklch(17% 0.014 55);
+    --color-surface: oklch(21% 0.015 55);
+    --color-surface-2: oklch(25.5% 0.017 55);
+    --color-ink: oklch(95% 0.008 75);
+    --color-ink-soft: oklch(78% 0.013 70);
+    --color-ink-faint: oklch(57% 0.015 65);
+    --color-border: oklch(33% 0.017 60);
+    --color-border-soft: oklch(27% 0.015 60);
+
+    --color-coral: oklch(70% 0.16 35);
+    --color-coral-ink: oklch(87% 0.05 35);
+    --color-coral-soft: oklch(30% 0.06 35);
+
+    --color-teal: oklch(64% 0.09 200);
+    --color-teal-ink: oklch(85% 0.045 200);
+    --color-teal-soft: oklch(27% 0.05 200);
+
+    --color-gold: oklch(80% 0.12 80);
+    --color-gold-ink: oklch(88% 0.05 80);
+    --color-gold-soft: oklch(30% 0.05 80);
+  }
+}
+
+/* Explicit choice — wins in both directions */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: oklch(17% 0.014 55);
+  --color-surface: oklch(21% 0.015 55);
+  --color-surface-2: oklch(25.5% 0.017 55);
+  --color-ink: oklch(95% 0.008 75);
+  --color-ink-soft: oklch(78% 0.013 70);
+  --color-ink-faint: oklch(57% 0.015 65);
+  --color-border: oklch(33% 0.017 60);
+  --color-border-soft: oklch(27% 0.015 60);
+
+  --color-coral: oklch(70% 0.16 35);
+  --color-coral-ink: oklch(87% 0.05 35);
+  --color-coral-soft: oklch(30% 0.06 35);
+
+  --color-teal: oklch(64% 0.09 200);
+  --color-teal-ink: oklch(85% 0.045 200);
+  --color-teal-soft: oklch(27% 0.05 200);
+
+  --color-gold: oklch(80% 0.12 80);
+  --color-gold-ink: oklch(88% 0.05 80);
+  --color-gold-soft: oklch(30% 0.05 80);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+::selection {
+  background: var(--color-coral-soft);
+  color: var(--color-coral-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-faint);
+}

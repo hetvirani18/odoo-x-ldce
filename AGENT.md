@@ -12,18 +12,27 @@ This is a hackathon on a tight clock — don't let caution become an excuse to o
   - `PROJECT_PLAN.md` — problem statement summary, screens, tech stack, build order
   - `BACKEND_GUIDE.md` — backend code style bible (plain JavaScript, no TypeScript, no Result-pattern library; models/repositories/controllers/routes/services conventions, error system)
   - `backend-architecture.md` — what we build: full folder tree, every module/endpoint, error-code domains, external services, itinerary/budget data flow
+  - `FRONTEND_GUIDE.md` — frontend code style bible (plain JavaScript, Vite + React Router, Redux Toolkit/RTK Query for all state — no TanStack Query, no separate auth context; Zod + react-hook-form conventions)
+  - `frontend-architecture.md` — what we build: full folder tree, every screen/route mapped to its backend endpoint, known gaps between `ui-design/` and the current backend scope
   - `database-design.md` — ER diagram, table rationale, full MySQL DDL
   - `schema.sql` — the DDL actually run against the database (source of truth for table shape)
   - `GlobeTrotter.pdf` / `GlobeTrotter - 8 hours.png` — the original problem statement from Odoo
 - `ref/` — reference material from a prior project (different stack: TypeScript + `neverthrow` +
-  database-per-tenant, though also MySQL). Useful for **structural patterns** (layering, error
-  catalogs, response shapes, doc-writing style) — **not** for literal stack choices on the
-  TS/Result-pattern/multi-tenancy front. GlobeTrotter uses plain JavaScript, no Result-pattern
-  wrapper, and a single-tenant MySQL database — see `docs/BACKEND_GUIDE.md` for the actual rules
-  that apply here.
+  database-per-tenant, though also MySQL, plus a Next.js/TanStack-Query frontend guide). Useful for
+  **structural patterns** (layering, error catalogs, response shapes, doc-writing style) — **not**
+  for literal stack choices on the TS/Result-pattern/multi-tenancy/Next.js/TanStack front.
+  GlobeTrotter uses plain JavaScript, no Result-pattern wrapper, a single-tenant MySQL database,
+  and a Vite + React Router + Redux Toolkit frontend — see `docs/BACKEND_GUIDE.md` /
+  `docs/FRONTEND_GUIDE.md` for the actual rules that apply here.
 - `backend/` — Express + plain JavaScript API server. See `backend/AGENT.md` for scoped
   backend-specific guidance and pointers into `docs/BACKEND_GUIDE.md` / `docs/backend-architecture.md`.
-- `frontend/` (to be scaffolded) — not yet decided/built.
+- `ui-design/` — a static, no-backend, no-router UI prototype covering all 12 screens (React +
+  Vite + Tailwind v4 + `motion`). This **is** the design system `frontend/` builds from — see
+  `docs/FRONTEND_GUIDE.md` §0.
+- `frontend/` — the real app: Vite + React Router + Redux Toolkit (RTK Query) + Zod +
+  react-hook-form, wiring `ui-design/`'s screens to the real backend. See `frontend/AGENT.md` for
+  scoped guidance, and `docs/FRONTEND_GUIDE.md` / `docs/frontend-architecture.md` for the full
+  rules.
 
 ## 1. Think Before Coding
 

@@ -5,59 +5,6 @@ import { SearchToolbar, Avatar, Button, Input } from '../components/ui/ui.jsx';
 import { IconArrowRight, IconCalendar, IconPin, IconShare } from '../components/ui/icons.jsx';
 import { useListPublicTripsQuery } from '../features/publicShare/publicShareApi.js';
 
-const FEATURED_COMMUNITY_TRIPS = [
-    {
-        id: 'c1',
-        owner: 'Priya Sharma',
-        trip: 'Kyoto in Cherry Blossom Season',
-        dates: 'Mar 18 – Mar 24, 2026',
-        cities: ['Kyoto', 'Nara'],
-        tone: 'coral',
-        shareToken: 'demo_kyoto_blossom_2026',
-        description: 'Traditional tea ceremonies, bamboo groves, and historic temple walks during peak bloom.',
-    },
-    {
-        id: 'c2',
-        owner: 'Marco Rossi',
-        trip: 'Budget Week in Lisbon & Sintra',
-        dates: 'Feb 2 – Feb 9, 2026',
-        cities: ['Lisbon', 'Sintra', 'Cascais'],
-        tone: 'teal',
-        shareToken: 'demo_lisbon_budget_2026',
-        description: 'Coastal tram rides, pastel de nata tastings, and exploring hilltop palaces.',
-    },
-    {
-        id: 'c3',
-        owner: 'Aiko Tanaka',
-        trip: 'Summer Hiking in Banff & Rockies',
-        dates: 'Jul 11 – Jul 18, 2026',
-        cities: ['Banff', 'Lake Louise', 'Jasper'],
-        tone: 'gold',
-        shareToken: 'demo_banff_hiking_2026',
-        description: 'Glacial turquoise lakes, alpine summits, and scenic wildlife trails.',
-    },
-    {
-        id: 'c4',
-        owner: 'Yusuf Khan',
-        trip: 'Marrakech Souks & Agafay Desert',
-        dates: 'May 5 – May 11, 2026',
-        cities: ['Marrakech', 'Agafay'],
-        tone: 'coral',
-        shareToken: 'demo_marrakech_desert_2026',
-        description: 'Vibrant medina alleyways, stargazing under desert skies, and culinary spice tours.',
-    },
-    {
-        id: 'c5',
-        owner: 'Elena Rostova',
-        trip: 'Grand Mediterranean Cruise & Rome',
-        dates: 'Jun 10 – Jun 17, 2026',
-        cities: ['Rome', 'Barcelona', 'Nice'],
-        tone: 'teal',
-        shareToken: 'demo_med_rome_2026',
-        description: 'Historic Roman monuments, coastal tapas, and Riviera promenades.',
-    },
-];
-
 export default function CommunityPage() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
@@ -76,9 +23,7 @@ export default function CommunityPage() {
         description: t.description || 'Public traveler itinerary on GlobeTrotter.',
     }));
 
-    const allTrips = [...formattedLiveTrips, ...FEATURED_COMMUNITY_TRIPS];
-
-    const filteredTrips = allTrips.filter((t) => {
+    const filteredTrips = formattedLiveTrips.filter((t) => {
         const q = searchQuery.toLowerCase();
         return (
             t.trip.toLowerCase().includes(q) ||
@@ -186,8 +131,14 @@ export default function CommunityPage() {
 
                     {filteredTrips.length === 0 && (
                         <div className="rounded-3xl border border-dashed border-border-soft bg-surface p-12 text-center">
-                            <p className="text-[15px] font-medium text-ink">No matching public trips</p>
-                            <p className="mt-1 text-[13px] text-ink-faint">Try searching for a different destination or keyword.</p>
+                            <p className="text-[15px] font-medium text-ink">
+                                {searchQuery ? 'No matching public trips' : 'No public trips shared yet'}
+                            </p>
+                            <p className="mt-1 text-[13px] text-ink-faint">
+                                {searchQuery
+                                    ? 'Try searching for a different destination or keyword.'
+                                    : 'Be the first to make a trip public and it will show up here.'}
+                            </p>
                         </div>
                     )}
                 </div>

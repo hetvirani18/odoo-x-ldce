@@ -9,6 +9,16 @@ it via the `trip_activities` join table, and a `trip` has one computed `cost_est
 and `activities` are shared catalog tables (seeded + optionally enriched from external providers,
 see `docs/backend-architecture.md` §6) — not owned by any one user.
 
+**v2 — forgot/reset password + admin role.** New `password_reset_tokens` table backs the
+forgot-password flow (`docs/backend-architecture.md` §4a) — a one-time, short-lived, hashed token
+per reset request, deliberately kept separate from `users` rather than adding reset columns
+directly on it (see Design Decisions below). `users` also gains a `role ENUM('user','admin')`
+column (default `'user'`) to back the PS's Screen 13 (Admin / Analytics Dashboard — optional but
+part of the original spec). No separate `admins` table: an admin is just a user with a different
+role, same as `ref/`'s tenant `users.role` pattern — there's no platform-staff-vs-dealer split
+here like `ref/`'s `securepass_employee`, since GlobeTrotter has no multi-tenant organizations to
+separate staff from.
+
 ---
 
 ## 1. Entity-Relationship Diagram
@@ -16,6 +26,7 @@ see `docs/backend-architecture.md` §6) — not owned by any one user.
 ```mermaid
 erDiagram
     USERS ||--o{ TRIPS : "owns"
+    USERS ||--o{ PASSWORD_RESET_TOKENS : "requests"
     TRIPS ||--o{ STOPS : "has"
     CITIES ||--o{ STOPS : "visited in"
     STOPS ||--o{ TRIP_ACTIVITIES : "schedules"
@@ -30,6 +41,7 @@ erDiagram
         varchar password_hash
         varchar photo_url
         varchar language "default 'en'"
+        enum role "user / admin — default 'user'"
         datetime created_at
     }
 
@@ -94,6 +106,15 @@ erDiagram
         decimal total_cost "generated: sum of the four above"
         datetime updated_at
     }
+
+    PASSWORD_RESET_TOKENS {
+        bigint id PK
+        bigint user_id FK
+        varchar token_hash UK "sha256 of the emailed token — never store plaintext"
+        datetime expires_at "short-lived, e.g. 30 minutes"
+        boolean used "default false — single-use"
+        datetime created_at
+    }
 ```
 
 ---
@@ -109,6 +130,7 @@ erDiagram
 | 5 | `activities` | Shared things-to-do catalog, scoped to one city | cities 1→N; referenced by trip_activities |
 | 6 | `trip_activities` | Join row: an activity scheduled within a specific stop | stops 1→N, activities 1→N |
 | 7 | `cost_estimates` | Computed budget breakdown for a trip | trips 1→1 |
+| 8 | `password_reset_tokens` | One-time, hashed, short-lived tokens backing the forgot-password flow | users 1→N (a user may request several resets over time) |
 | — | `cost_rates` | Lookup table: per_night_rate / per_day_meal_rate by cost_index | referenced by budget calc, not a business entity |
 
 No row-level tenancy needed — every table is naturally scoped by its foreign-key chain back to
@@ -157,6 +179,21 @@ No row-level tenancy needed — every table is naturally scoped by its foreign-k
 - **`cost_index` is a MySQL `ENUM`**, not a `VARCHAR` + `CHECK` constraint — idiomatic MySQL for a
   small fixed set of values (matches the `status`/`role`-style enums throughout `ref/database-design.md`),
   and self-documents the valid values directly in the column definition.
+- **`role` is a column on `users`, not a separate `admins` table.** An admin is a regular user
+  account with `role = 'admin'` — same pattern as `ref/`'s tenant `users.role`
+  (`admin`/`operator`/`delivery_staff`). This is different from `ref/`'s `securepass_employee`
+  (a wholly separate platform-staff table with its own auth stack), because that split exists
+  specifically to separate *platform* staff from *dealer* staff in a multi-tenant SaaS —
+  GlobeTrotter has no tenants to separate staff from, so one `users` table with a role column is
+  the right level of complexity here.
+- **`password_reset_tokens` is its own table, not `reset_token`/`reset_token_expires` columns
+  bolted onto `users`.** A separate table lets a user request multiple resets over time without
+  overwriting history, keeps `users` free of nullable auth-flow columns that are almost always
+  empty, and makes "single-use" a natural row property (`used`) rather than something inferred
+  from column state. Only the **hash** of the token is stored (`token_hash`, `sha256`) — same
+  reasoning as `password_hash` itself: a DB leak should never hand out usable reset links.
+  `expires_at` is a short window (30 minutes) enforced in the controller
+  (`docs/backend-architecture.md` §4a), not the DB.
 - **No multi-tenancy / database-per-user.** GlobeTrotter is a single consumer-facing app, not a
   B2B platform serving isolated organizations — row-level ownership via `trips.user_id`, checked in
   the controller, is the right level of isolation here (contrast with the database-per-tenant SaaS
@@ -177,6 +214,7 @@ CREATE TABLE users (
     password_hash   VARCHAR(255) NOT NULL,
     photo_url       TEXT,
     language        VARCHAR(20) DEFAULT 'en',
+    role            ENUM('user', 'admin') NOT NULL DEFAULT 'user',
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -270,4 +308,17 @@ INSERT INTO cost_rates (cost_index, per_night_rate, per_day_meal_rate) VALUES
     ('low',    35.00, 15.00),
     ('medium', 80.00, 30.00),
     ('high',  180.00, 60.00);
+
+-- Forgot/reset password (v2) — one-time, hashed, short-lived tokens.
+-- Never store the plaintext token, only its sha256 hash.
+CREATE TABLE password_reset_tokens (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT UNSIGNED NOT NULL,
+    token_hash      CHAR(64) NOT NULL UNIQUE,
+    expires_at      DATETIME NOT NULL,
+    used            BOOLEAN NOT NULL DEFAULT false,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_reset_token_user_id (user_id)
+) ENGINE=InnoDB;
 ```

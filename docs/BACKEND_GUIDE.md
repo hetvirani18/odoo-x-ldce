@@ -18,6 +18,7 @@ src/
 │   └── seed.sql                    # Seed data — cities, activities, cost_rate
 ├── models/
 │   ├── user.model.js                # TABLE_NAME + typedefs (User, UserView, CreateUserInput, ...)
+│   ├── passwordResetToken.model.js  # PasswordResetToken — token hash, user_id, expires_at, used
 │   ├── trip.model.js
 │   ├── stop.model.js
 │   ├── city.model.js
@@ -25,6 +26,7 @@ src/
 │   └── costEstimate.model.js
 ├── repositories/
 │   ├── user.repository.js           # DB access only, zero business logic
+│   ├── passwordResetToken.repository.js
 │   ├── trip.repository.js
 │   ├── stop.repository.js
 │   ├── city.repository.js
@@ -36,13 +38,15 @@ src/
 │   ├── itinerary.controller.js
 │   ├── city.controller.js
 │   ├── activity.controller.js
-│   └── budget.controller.js
+│   ├── budget.controller.js
+│   └── admin.controller.js          # stats aggregate, user list, role management
 ├── routes/
 │   ├── auth.route.js
 │   ├── trip.route.js
 │   ├── city.route.js
 │   ├── activity.route.js
-│   └── budget.route.js
+│   ├── budget.route.js
+│   └── admin.route.js               # /api/admin — authenticate + requireAdmin
 ├── services/
 │   ├── cityProvider/
 │   │   ├── cityProvider.interface.js   # Documents the required method shape
@@ -56,11 +60,13 @@ src/
 │   │   ├── pricingProvider.interface.js
 │   │   ├── amadeusPricingProvider.js   # Real flight/hotel price lookups
 │   │   └── costIndexPricingProvider.js # Formula-based fallback (activities/meals)
-│   └── budget.service.js            # Combines pricing providers into one trip budget
+│   ├── budget.service.js            # Combines pricing providers into one trip budget
+│   └── email.service.js             # Sends the forgot-password reset email (single provider, no fallback — see §9.5)
 ├── middleware/
-│   ├── auth.middleware.js           # authenticate, requireAuth
+│   ├── auth.middleware.js           # authenticate, requireAdmin
 │   ├── error.middleware.js          # errorHandler, notFoundHandler
 │   ├── validateRequest.middleware.js # Zod-based body/query/params validation
+│   ├── ratelimit.middleware.js      # global express-rate-limit config
 │   └── asyncHandler.js              # Wraps async route handlers, forwards throws to next()
 └── utils/
     ├── AppError.js                  # Custom error class + ERRORS catalog
@@ -82,6 +88,8 @@ src/
 | `dotenv` | Env var loading |
 | `cookie-parser` | Reads the httpOnly `access_token` cookie into `req.cookies` |
 | `axios` | HTTP client for external API calls (city/activity/pricing services) |
+| `nodemailer` | Sends the forgot-password reset email (SMTP) |
+| `express-rate-limit` | Global request-rate limiting |
 
 **Package type:** plain CommonJS or ESM (`"type": "module"`) — pick one per the team's comfort and stay consistent everywhere. No TypeScript, no build step — Node runs the source directly.
 
@@ -161,12 +169,16 @@ const ERRORS = {
     VALIDATION_ERROR:      new AppError('Validation failed', 10002, 422),
     RESOURCE_NOT_FOUND:    new AppError('Resource not found', 10003, 404),
     ROUTE_NOT_FOUND:       new AppError('Route not found', 10004, 404),
+    RATE_LIMIT_EXCEEDED:   new AppError('Too many requests, please try again later', 10005, 429),
 
     // Auth (2xxxx)
     NO_TOKEN_PROVIDED:     new AppError('No authentication token provided', 20001, 401),
     INVALID_AUTH_TOKEN:    new AppError('Invalid authentication token', 20002, 401),
     EMAIL_ALREADY_EXISTS:  new AppError('Email already registered', 20003, 409),
     INVALID_CREDENTIALS:   new AppError('Invalid email or password', 20004, 401),
+    RESET_TOKEN_INVALID:   new AppError('Password reset link is invalid', 20005, 400),
+    RESET_TOKEN_EXPIRED:   new AppError('Password reset link has expired', 20006, 400),
+    ADMIN_ONLY_ROUTE:      new AppError('Admin access required', 20007, 403),
 
     // Trip / Stop (3xxxx)
     TRIP_NOT_FOUND:        new AppError('Trip not found', 30001, 404),
@@ -184,6 +196,7 @@ const ERRORS = {
     CITY_PROVIDER_UNAVAILABLE:     new AppError('City search service unavailable', 60001, 502),
     ACTIVITY_PROVIDER_UNAVAILABLE: new AppError('Activity search service unavailable', 60002, 502),
     PRICING_PROVIDER_UNAVAILABLE:  new AppError('Pricing service unavailable', 60003, 502),
+    EMAIL_SEND_FAILED:             new AppError('Failed to send email', 60004, 502),
 };
 
 module.exports = { AppError, ERRORS };
@@ -487,6 +500,49 @@ Controllers only ever call `cityService.searchCities(query)` — they never know
 - Every provider is swappable independently — adding a new city data source never touches `activityProvider/` or `pricingProvider/`.
 - API keys are read once in `config/env.js` and passed down — never read `process.env` inside a provider file.
 
+### 9.5 Email service (forgot password) — single provider, no fallback
+
+Unlike city/activity/pricing, there is no "seeded data" fallback that makes sense for sending an
+email — if the provider is down, the email just doesn't send. So `email.service.js` is a plain
+single-implementation service, not an interface + swappable-providers folder like §9.1–9.4.
+
+```javascript
+// src/services/email.service.js
+const nodemailer = require('nodemailer');
+const { ERRORS } = require('../utils/AppError');
+const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM } = require('../config/env');
+
+const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
+});
+
+async function sendPasswordResetEmail(to, resetLink) {
+    try {
+        await transporter.sendMail({
+            from: SMTP_FROM,
+            to,
+            subject: 'Reset your GlobeTrotter password',
+            html: `<p>Click the link below to reset your password. This link expires in 30 minutes.</p>
+                   <p><a href="${resetLink}">${resetLink}</a></p>`,
+        });
+    } catch (error) {
+        throw ERRORS.EMAIL_SEND_FAILED;
+    }
+}
+
+module.exports = { sendPasswordResetEmail };
+```
+
+**Rules:**
+- The controller catches `ERRORS.EMAIL_SEND_FAILED` from this service and logs it, but **still
+  returns a generic success response** to the client either way (see §13's forgot-password row) —
+  never let email delivery failure reveal whether an account exists for that address.
+- SMTP credentials are read once in `config/env.js`, same as every other external service key.
+- For local dev, point `SMTP_HOST`/`SMTP_PORT`/etc. at a free testing inbox (e.g. Mailtrap) so
+  reset emails don't need a real mailbox to verify the flow end to end.
+
 ---
 
 ## 10. Budget Formula (implemented in `budget.service.js`)
@@ -552,17 +608,45 @@ function authenticate(req, res, next) {
         return next(ERRORS.NO_TOKEN_PROVIDED);
     }
     try {
-        req.user = jwt.verify(token, JWT_SECRET);
+        req.user = jwt.verify(token, JWT_SECRET); // { id, email, role }
         next();
     } catch (error) {
         next(ERRORS.INVALID_AUTH_TOKEN);
     }
 }
 
-module.exports = { authenticate };
+// Must come AFTER authenticate in the middleware chain — used only by /api/admin/* routes
+function requireAdmin(req, res, next) {
+    if (req.user.role !== 'admin') {
+        return next(ERRORS.ADMIN_ONLY_ROUTE);
+    }
+    next();
+}
+
+module.exports = { authenticate, requireAdmin };
 ```
 
 `app.js` must register `app.use(cookieParser())` before any router that uses `authenticate`.
+
+### `ratelimit.middleware.js`
+
+```javascript
+const rateLimit = require('express-rate-limit');
+const { errorResponse } = require('../utils/response');
+const { ERRORS } = require('../utils/AppError');
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: errorResponse(ERRORS.RATE_LIMIT_EXCEEDED.message, ERRORS.RATE_LIMIT_EXCEEDED.code),
+});
+
+module.exports = limiter;
+```
+
+Applied globally in `app.js` as the very first middleware, before `cors`/`json`/`cookieParser`: `app.use(limiter)`.
 
 ### `validateRequest.middleware.js`
 
@@ -647,13 +731,14 @@ module.exports = tripRouter;
 
 | Module | Routes | Notes |
 |---|---|---|
-| Auth | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout` | bcrypt (12 rounds) + JWT as httpOnly cookie, no refresh token |
+| Auth | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password` | bcrypt (12 rounds) + JWT as httpOnly cookie, no refresh token; reset flow uses `password_reset_tokens` + `email.service.js` |
 | Trip | `POST /api/trips`, `GET /api/trips`, `GET /api/trips/:id`, `PUT /api/trips/:id`, `DELETE /api/trips/:id` | ownership check in controller |
 | Stop / Itinerary | `POST /api/trips/:tripId/stops`, `PUT /api/stops/:id`, `DELETE /api/stops/:id`, `POST /api/stops/:id/activities` | nested under trip |
 | City | `GET /api/cities/search?q=` | uses `city.service.js` (GeoDB + seed fallback) |
 | Activity | `GET /api/cities/:cityId/activities` | uses `activity.service.js` (OpenTripMap + seed fallback) |
 | Budget | `GET /api/trips/:id/budget` | uses `budget.service.js` — computes and persists into `cost_estimates` |
 | Public share | `GET /api/public/trips/:shareToken` | no auth, read-only |
+| Admin | `GET /api/admin/stats`, `GET /api/admin/users`, `PATCH /api/admin/users/:id/role` | `authenticate` + `requireAdmin` — PS Screen 13, optional but part of the original spec |
 
 ---
 

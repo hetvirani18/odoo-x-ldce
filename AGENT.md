@@ -21,7 +21,8 @@ This is a hackathon on a tight clock — don't let caution become an excuse to o
   TS/Result-pattern/multi-tenancy front. GlobeTrotter uses plain JavaScript, no Result-pattern
   wrapper, and a single-tenant MySQL database — see `docs/BACKEND_GUIDE.md` for the actual rules
   that apply here.
-- `backend/` (to be scaffolded) — Express + plain JavaScript API server, per `docs/BACKEND_GUIDE.md`.
+- `backend/` — Express + plain JavaScript API server. See `backend/AGENT.md` for scoped
+  backend-specific guidance and pointers into `docs/BACKEND_GUIDE.md` / `docs/backend-architecture.md`.
 - `frontend/` (to be scaffolded) — not yet decided/built.
 
 ## 1. Think Before Coding
@@ -45,6 +46,10 @@ Before implementing:
 - No "flexibility" or "configurability" that wasn't requested.
 - No error handling for impossible scenarios.
 - If you write 200 lines and it could be 50, rewrite it.
+- No unnecessary comments. Default to none. Only add one when the *why* isn't obvious from the
+  code itself (a non-obvious constraint, a workaround, a tradeoff) — never restate what the code
+  already says. A function/file with a paragraph of comments stacked above it is a sign the code
+  needs a better name or a simpler shape, not more prose next to it.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 

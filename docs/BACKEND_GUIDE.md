@@ -733,7 +733,7 @@ module.exports = tripRouter;
 |---|---|---|
 | Auth | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password` | bcrypt (12 rounds) + JWT as httpOnly cookie, no refresh token; reset flow uses `password_reset_tokens` + `email.service.js` |
 | Trip | `POST /api/trips`, `GET /api/trips`, `GET /api/trips/:id`, `PUT /api/trips/:id`, `DELETE /api/trips/:id` | ownership check in controller |
-| Stop / Itinerary | `POST /api/trips/:tripId/stops`, `PUT /api/stops/:id`, `DELETE /api/stops/:id`, `POST /api/stops/:id/activities` | nested under trip |
+| Stop / Itinerary | `POST /api/trips/:tripId/stops`, `PUT /api/stops/:id`, `DELETE /api/stops/:id`, `PUT /api/trips/:tripId/stops/reorder`, `POST /api/stops/:id/activities`, `PUT /api/stops/:id/activities/:activityId`, `DELETE /api/stops/:id/activities/:activityId` | nested under trip |
 | City | `GET /api/cities/search?q=` | uses `city.service.js` (GeoDB + seed fallback) |
 | Activity | `GET /api/cities/:cityId/activities` | uses `activity.service.js` (OpenTripMap + seed fallback) |
 | Budget | `GET /api/trips/:id/budget` | uses `budget.service.js` — computes and persists into `cost_estimates` |

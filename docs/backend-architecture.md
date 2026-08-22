@@ -124,7 +124,8 @@ All routers mount under `/api/...`. Middleware chain order (guide §12):
 |---|---|---|---|
 | GET | `/me` | authed | Retrieve authenticated user's profile |
 | PUT | `/me` | authed | Update current user's profile (name, photo_url, language) |
-| DELETE | `/me` | authed | Delete account and clear auth cookie |
+| POST | `/me/photo` | authed | Upload profile photo (multipart/form-data with `photo` file), managed via `photo.service.js` |
+| DELETE | `/me` | authed | Delete account, delete stored photo, and clear auth cookie |
 
 ### 3.3 Trips — `/api/trips`
 | Method | Path | Access | Purpose |

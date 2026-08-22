@@ -22,6 +22,7 @@ CREATE TABLE cities (
     lng             DECIMAL(9,6),
     cost_index      ENUM('low', 'medium', 'high') NOT NULL,
     popularity      INT DEFAULT 0,
+    image_url       TEXT,
     UNIQUE KEY uq_city_name_country (name, country)
 ) ENGINE=InnoDB;
 

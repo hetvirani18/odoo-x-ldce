@@ -4,7 +4,7 @@ export const tripsApi = api.injectEndpoints({
     endpoints: (build) => ({
         listTrips: build.query({
             query: () => '/trips',
-            transformResponse: (res) => res.data,
+            transformResponse: (res) => res.data || [],
             providesTags: (result = []) => [
                 ...result.map((t) => ({ type: 'Trip', id: t.id })),
                 { type: 'Trip', id: 'LIST' },

@@ -3,7 +3,8 @@ const TripRepository = require('../repositories/trip.repository');
 const StopRepository = require('../repositories/stop.repository');
 const TripActivityRepository = require('../repositories/tripActivity.repository');
 const CostEstimateRepository = require('../repositories/costEstimate.repository');
-const { toPublicTripView } = require('../models/trip.model');
+const UserRepository = require('../repositories/user.repository');
+const { toPublicTripView, formatLocalDate } = require('../models/trip.model');
 const { toCostEstimateView } = require('../models/costEstimate.model');
 const { ERRORS } = require('../utils/AppError');
 const { FRONTEND_URL } = require('../config/env');
@@ -53,9 +54,12 @@ async function unshareTrip(tripId, requestingUserId) {
  */
 async function getPublicTrip(shareToken) {
     const trip = await TripRepository.findByShareToken(shareToken);
-    const stops = await StopRepository.findByTripId(trip.id);
-    const activities = await TripActivityRepository.findByTripId(trip.id);
-    const costEstimate = await CostEstimateRepository.findByTripId(trip.id);
+    const [stops, activities, costEstimate, owner] = await Promise.all([
+        StopRepository.findByTripId(trip.id),
+        TripActivityRepository.findByTripId(trip.id),
+        CostEstimateRepository.findByTripId(trip.id),
+        UserRepository.findById(trip.user_id),
+    ]);
 
     // Group activities by stop
     const activitiesByStop = new Map();
@@ -94,9 +98,28 @@ async function getPublicTrip(shareToken) {
 
     return {
         trip: toPublicTripView(trip),
+        owner: {
+            name: owner.name,
+            photo_url: owner.photo_url,
+        },
         stops: structuredStops,
         cost_estimate: costEstimate ? toCostEstimateView(costEstimate) : null,
     };
 }
 
-module.exports = { shareTrip, unshareTrip, getPublicTrip };
+async function listPublicTrips() {
+    const trips = await TripRepository.listPublicTrips();
+    return trips.map((t) => ({
+        id: t.id,
+        name: t.name,
+        start_date: formatLocalDate(t.start_date),
+        end_date: formatLocalDate(t.end_date),
+        description: t.description,
+        cover_photo_url: t.cover_photo_url,
+        share_token: t.share_token,
+        owner_name: t.owner_name,
+        owner_photo: t.owner_photo,
+    }));
+}
+
+module.exports = { shareTrip, unshareTrip, getPublicTrip, listPublicTrips };

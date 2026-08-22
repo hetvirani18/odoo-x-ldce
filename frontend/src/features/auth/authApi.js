@@ -27,6 +27,11 @@ export const authApi = api.injectEndpoints({
             transformResponse: (res) => res.data,
             providesTags: ['Me'],
         }),
+        uploadPhoto: build.mutation({
+            query: (formData) => ({ url: '/users/me/photo', method: 'POST', body: formData }),
+            transformResponse: (res) => res.data,
+            invalidatesTags: ['Me'],
+        }),
     }),
 });
 
@@ -37,4 +42,5 @@ export const {
     useForgotPasswordMutation,
     useResetPasswordMutation,
     useGetMeQuery,
+    useUploadPhotoMutation,
 } = authApi;

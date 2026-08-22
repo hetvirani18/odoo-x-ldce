@@ -1,7 +1,8 @@
 import { motion } from "motion/react";
-import { IconCompass, IconPlus } from "./icons.jsx";
-import { Avatar, Button } from "./ui.jsx";
+import { IconCompass, IconLogOut, IconPlus, IconUser } from "./icons.jsx";
+import { Button } from "./ui.jsx";
 import { ThemeToggle } from "./ThemeToggle.jsx";
+import { AccountMenu } from "./AccountMenu.jsx";
 
 export function TopBar({ active, onNavigate, onProfile, onCreateTrip }) {
   const links = [
@@ -51,9 +52,12 @@ export function TopBar({ active, onNavigate, onProfile, onCreateTrip }) {
             Plan a trip
           </Button>
           <ThemeToggle />
-          <button onClick={onProfile} className="cursor-pointer rounded-full transition-transform hover:scale-105">
-            <Avatar initials="HV" size={38} />
-          </button>
+          <AccountMenu
+            items={[
+              { label: "View profile", icon: <IconUser size={15} className="text-ink-faint" />, onClick: onProfile },
+              { label: "Log out", icon: <IconLogOut size={15} />, tone: "danger", onClick: () => onNavigate("login") },
+            ]}
+          />
         </div>
       </div>
     </header>

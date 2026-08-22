@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { TopBar } from "../components/TopBar.jsx";
 import { SearchToolbar } from "../components/ui.jsx";
+import { SharePanel } from "../components/SharePanel.jsx";
 import { dayOnePlan, dayTwoPlan } from "../data/mock.js";
 import { IconWallet } from "../components/icons.jsx";
 
@@ -57,8 +58,13 @@ export function ItineraryBudgetScreen({ onNavigate }) {
       <TopBar active="tripListing" onNavigate={onNavigate} onProfile={() => onNavigate("profile")} onCreateTrip={() => onNavigate("createTrip")} />
 
       <main className="mx-auto max-w-3xl px-6 py-10 pb-20">
-        <p className="mb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-coral-ink">Paris in Bloom</p>
-        <h1 className="font-display text-[28px] font-semibold text-ink">Itinerary for Paris</h1>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="mb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-coral-ink">Paris in Bloom</p>
+            <h1 className="font-display text-[28px] font-semibold text-ink">Itinerary for Paris</h1>
+          </div>
+          <SharePanel tripSlug="paris-in-bloom" />
+        </div>
 
         <div className="mt-6">
           <SearchToolbar placeholder="Search activities in this trip…" />

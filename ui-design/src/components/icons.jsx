@@ -255,6 +255,43 @@ export function IconMoon({ size = 17, className }) {
   );
 }
 
+export function IconShare({ size = 16, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <circle cx="18" cy="5.5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="18.5" r="2.5" />
+      <path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4" />
+    </svg>
+  );
+}
+
+export function IconLink({ size = 15, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <path d="M9.5 14.5 14.5 9.5" />
+      <path d="M11 6.5 12.4 5A4 4 0 1 1 18 10.6l-1.5 1.4M13 17.5 11.6 19A4 4 0 1 1 6 13.4l1.5-1.4" />
+    </svg>
+  );
+}
+
+export function IconCheck({ size = 15, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <path d="m5 12.5 4.5 4.5L19 7" />
+    </svg>
+  );
+}
+
+export function IconLogOut({ size = 18, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" />
+      <path d="M20 12H9M20 12l-3.5-3.5M20 12l-3.5 3.5" />
+    </svg>
+  );
+}
+
 export function IconShield({ size = 18, className }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

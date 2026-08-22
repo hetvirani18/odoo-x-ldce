@@ -160,12 +160,22 @@ export function SectionHeading({ eyebrow, title, action }) {
   );
 }
 
-export function Avatar({ initials = "GT", size = 40, tone = "coral" }) {
+export function Avatar({ initials = "GT", size = 40, tone = "coral", photoUrl }) {
   const tones = {
     coral: "bg-coral text-white",
     teal: "bg-teal text-white",
     ink: "bg-ink text-bg",
   };
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt=""
+        style={{ width: size, height: size }}
+        className="rounded-full object-cover"
+      />
+    );
+  }
   return (
     <div
       style={{ width: size, height: size, fontSize: size * 0.38 }}

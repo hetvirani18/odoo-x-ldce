@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { TopBar } from "../components/TopBar.jsx";
+import { AdminTopBar } from "../components/AdminTopBar.jsx";
 import { SearchToolbar, Badge, Card } from "../components/ui.jsx";
 import { BarChart, DonutChart, LineChart } from "../components/charts.jsx";
 import { adminUsers, popularActivities, popularCities, analyticsTrend, tripsBySeason } from "../data/mock.js";
@@ -15,7 +15,7 @@ const tabs = [
 
 const tabCopy = {
   users:
-    "Manage the users and their actions. View trip history per user, suspend accounts, and moderate community content.",
+    "Manage the users and their actions. View trip history per user, and suspend accounts.",
   cities: "Lists the most-visited cities based on current user trip data, updated daily.",
   activities: "Lists the most-booked activities based on current user trend data.",
   analytics: "Cross-cutting analysis across seasons, spend, and destinations to inform product decisions.",
@@ -26,38 +26,17 @@ export function AdminScreen({ onNavigate }) {
 
   return (
     <div>
-      <TopBar active="landing" onNavigate={onNavigate} onProfile={() => onNavigate("profile")} onCreateTrip={() => onNavigate("createTrip")} />
+      <AdminTopBar tabs={tabs} activeTab={tab} onTabChange={setTab} onNavigate={onNavigate} />
 
       <main className="mx-auto max-w-6xl px-6 py-10 pb-20">
-        <h1 className="font-display text-[28px] font-semibold text-ink">Admin panel</h1>
-        <p className="mt-1.5 text-[14.5px] text-ink-soft">Manage users, and see what people are actually doing on GlobeTrotter.</p>
+        <h1 className="font-display text-[28px] font-semibold text-ink">{tabs.find((t) => t.id === tab).label}</h1>
+        <p className="mt-1.5 max-w-lg text-[14.5px] text-ink-soft">{tabCopy[tab]}</p>
 
         <div className="mt-6">
           <SearchToolbar placeholder="Search users, cities, activities…" />
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const isActive = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-medium transition-colors ${
-                  isActive
-                    ? "border-ink bg-ink text-bg"
-                    : "border-border text-ink-soft hover:border-ink hover:text-ink"
-                }`}
-              >
-                <Icon size={14} />
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+        <div className="mt-7">
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             {tab === "users" && (
               <Card className="overflow-hidden p-0">
@@ -153,11 +132,6 @@ export function AdminScreen({ onNavigate }) {
               </div>
             )}
           </motion.div>
-
-          <aside className="h-fit rounded-3xl border border-border-soft bg-surface-2 p-6 lg:sticky lg:top-24">
-            <p className="font-display text-[15px] font-semibold text-ink">{tabs.find((t) => t.id === tab).label}</p>
-            <p className="mt-2.5 text-[13.5px] leading-relaxed text-ink-soft">{tabCopy[tab]}</p>
-          </aside>
         </div>
       </main>
     </div>

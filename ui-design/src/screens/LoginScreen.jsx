@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { AuthShell } from "./AuthPanel.jsx";
 import { Button, Field, Input } from "../components/ui.jsx";
 import { IconLock, IconMail } from "../components/icons.jsx";
@@ -56,20 +55,6 @@ export function LoginScreen({ onNavigate }) {
           Log in
         </Button>
       </form>
-
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-8 flex items-center gap-3 text-[12px] text-ink-faint">
-        <span className="h-px flex-1 bg-border" />
-        or continue with
-        <span className="h-px flex-1 bg-border" />
-      </motion.div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <button className="h-11 cursor-pointer rounded-full border border-border text-[13.5px] font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink">
-          Google
-        </button>
-        <button className="h-11 cursor-pointer rounded-full border border-border text-[13.5px] font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink">
-          Apple
-        </button>
-      </div>
     </AuthShell>
   );
 }

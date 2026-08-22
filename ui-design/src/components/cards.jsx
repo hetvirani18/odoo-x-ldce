@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Badge, Button, Card } from "./ui.jsx";
-import { IconArrowRight, IconCalendar, IconPin, IconWallet } from "./icons.jsx";
+import { IconArrowRight, IconCalendar, IconCamera, IconPin, IconWallet } from "./icons.jsx";
 
 const gradients = {
   coral:
@@ -38,7 +38,19 @@ export function TripCard({ name, dates, status, budget, cities, tone = "coral", 
       transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
     >
       <Card className="overflow-hidden">
-        <div className="h-28 w-full" style={{ background: gradients[tone] }} />
+        <div className="group/banner relative h-28 w-full" style={{ background: gradients[tone] }}>
+          {cities && cities[0] && (
+            <p className="absolute bottom-2.5 left-3.5 text-[11.5px] font-medium text-white/85">
+              {cities[0]}
+            </p>
+          )}
+          <button
+            title="Set cover photo"
+            className="absolute right-2.5 top-2.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/25 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/banner:opacity-100"
+          >
+            <IconCamera size={15} />
+          </button>
+        </div>
         <div className="p-5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-display text-[16px] font-semibold text-ink">{name}</p>

@@ -19,7 +19,18 @@ const publicRouter = require('./routes/public.route');
 const app = express();
 
 app.use(limiter);
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+const allowedOrigins = [CORS_ORIGIN, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'].filter(Boolean);
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+                return callback(null, true);
+            }
+            return callback(new Error('Not allowed by CORS'));
+        },
+        credentials: true,
+    })
+);
 app.use(express.json());
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

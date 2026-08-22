@@ -32,6 +32,15 @@ export const authApi = api.injectEndpoints({
             transformResponse: (res) => res.data,
             invalidatesTags: ['Me'],
         }),
+        updateProfile: build.mutation({
+            query: (body) => ({ url: '/users/me', method: 'PUT', body }),
+            transformResponse: (res) => res.data,
+            invalidatesTags: ['Me'],
+        }),
+        deleteAccount: build.mutation({
+            query: () => ({ url: '/users/me', method: 'DELETE' }),
+            invalidatesTags: ['Me'],
+        }),
     }),
 });
 
@@ -43,4 +52,6 @@ export const {
     useResetPasswordMutation,
     useGetMeQuery,
     useUploadPhotoMutation,
+    useUpdateProfileMutation,
+    useDeleteAccountMutation,
 } = authApi;

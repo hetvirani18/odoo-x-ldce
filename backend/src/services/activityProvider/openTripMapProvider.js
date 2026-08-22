@@ -2,6 +2,16 @@ const axios = require('axios');
 const { ERRORS } = require('../../utils/AppError');
 const { OPENTRIPMAP_API_KEY } = require('../../config/env');
 
+// Maps our app's activity categories (see docs/database-design.md — activities.category)
+// to OpenTripMap's own fixed `kinds` taxonomy, which uses different vocabulary.
+const DEFAULT_KINDS = 'interesting_places,cultural,historic';
+const CATEGORY_KIND_MAP = {
+    sightseeing: 'interesting_places',
+    food: 'foods',
+    adventure: 'sport,amusements',
+    culture: 'cultural,historic',
+};
+
 /**
  * @param {string} cityName
  * @param {{ category?: string, maxCost?: number }} [filters]
@@ -21,14 +31,14 @@ async function search(cityName, filters = {}) {
             }
         );
 
-        if (!geoRes.data || !geoRes.data.lat || !geoRes.data.lon) {
+        if (!geoRes.data || geoRes.data.lat == null || geoRes.data.lon == null) {
             return [];
         }
 
         const { lat, lon } = geoRes.data;
 
         // 2. Search places by radius (5km)
-        const kinds = filters.category || 'interesting_places,cultural,historic';
+        const kinds = (filters.category && CATEGORY_KIND_MAP[filters.category]) || DEFAULT_KINDS;
         const placesRes = await axios.get(
             `https://api.opentripmap.com/0.1/en/places/radius`,
             {

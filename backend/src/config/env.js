@@ -18,7 +18,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // External services — optional, providers fall back to seeded data if unset
 const GEODB_API_KEY = process.env.GEODB_API_KEY || '';
 const OPENTRIPMAP_API_KEY = process.env.OPENTRIPMAP_API_KEY || '';
-const FLIGHTFARE_API_KEY = process.env.FLIGHTFARE_API_KEY || process.env.GEODB_API_KEY || '';
+const FLIGHTFARE_API_KEY = process.env.FLIGHTFARE_API_KEY || '';
 
 // Email (forgot password) — no fallback, see docs/BACKEND_GUIDE.md §9.5
 const SMTP_HOST = process.env.SMTP_HOST || '';

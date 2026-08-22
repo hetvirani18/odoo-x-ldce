@@ -1,10 +1,7 @@
-const db = require('../database/db');
+const { db } = require('../database/db');
 const { ERRORS } = require('../utils/AppError');
 const { TABLE_NAME } = require('../models/trip.model');
 
-/**
- * @param {number} id
- */
 async function findById(id) {
     const [rows] = await db.query(`SELECT * FROM ${TABLE_NAME} WHERE id = ?`, [id]);
     if (rows.length === 0) {
@@ -13,9 +10,6 @@ async function findById(id) {
     return rows[0];
 }
 
-/**
- * @param {number} userId
- */
 async function findByUserId(userId) {
     const [rows] = await db.query(
         `SELECT * FROM ${TABLE_NAME} WHERE user_id = ? ORDER BY start_date DESC`,
@@ -38,13 +32,11 @@ async function findByShareToken(shareToken) {
     return rows[0];
 }
 
-/**
- * @param {import('../models/trip.model').CreateTripInput} input
- */
+/** @param {import('../models/trip.model').CreateTripInput} input */
 async function create(input) {
     const [result] = await db.query(
-        `INSERT INTO ${TABLE_NAME} (user_id, name, start_date, end_date, description, cover_photo_url)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO ${TABLE_NAME} (user_id, name, start_date, end_date, description, cover_photo_url, is_public, share_token)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
             input.userId,
             input.name,
@@ -52,6 +44,8 @@ async function create(input) {
             input.endDate,
             input.description ?? null,
             input.coverPhotoUrl ?? null,
+            input.isPublic ? 1 : 0,
+            input.shareToken ?? null,
         ]
     );
     return findById(result.insertId);
@@ -62,38 +56,44 @@ async function create(input) {
  * @param {import('../models/trip.model').UpdateTripInput} input
  */
 async function update(id, input) {
-    const updates = [];
-    const params = [];
+    const fields = [];
+    const values = [];
 
     if (input.name !== undefined) {
-        updates.push('name = ?');
-        params.push(input.name);
+        fields.push('name = ?');
+        values.push(input.name);
     }
     if (input.startDate !== undefined) {
-        updates.push('start_date = ?');
-        params.push(input.startDate);
+        fields.push('start_date = ?');
+        values.push(input.startDate);
     }
     if (input.endDate !== undefined) {
-        updates.push('end_date = ?');
-        params.push(input.endDate);
+        fields.push('end_date = ?');
+        values.push(input.endDate);
     }
     if (input.description !== undefined) {
-        updates.push('description = ?');
-        params.push(input.description);
+        fields.push('description = ?');
+        values.push(input.description);
     }
     if (input.coverPhotoUrl !== undefined) {
-        updates.push('cover_photo_url = ?');
-        params.push(input.coverPhotoUrl);
+        fields.push('cover_photo_url = ?');
+        values.push(input.coverPhotoUrl);
+    }
+    if (input.isPublic !== undefined) {
+        fields.push('is_public = ?');
+        values.push(input.isPublic ? 1 : 0);
+    }
+    if (input.shareToken !== undefined) {
+        fields.push('share_token = ?');
+        values.push(input.shareToken);
     }
 
-    if (updates.length > 0) {
-        params.push(id);
-        await db.query(
-            `UPDATE ${TABLE_NAME} SET ${updates.join(', ')} WHERE id = ?`,
-            params
-        );
+    if (fields.length === 0) {
+        return findById(id);
     }
 
+    values.push(id);
+    await db.query(`UPDATE ${TABLE_NAME} SET ${fields.join(', ')} WHERE id = ?`, values);
     return findById(id);
 }
 
@@ -110,9 +110,6 @@ async function updateShareStatus(id, isPublic, shareToken) {
     return findById(id);
 }
 
-/**
- * @param {number} id
- */
 async function deleteById(id) {
     await db.query(`DELETE FROM ${TABLE_NAME} WHERE id = ?`, [id]);
 }

@@ -34,10 +34,10 @@ function toActivityView(row) {
         city_id: row.city_id,
         name: row.name,
         category: row.category,
-        cost: Number(row.cost || 0),
-        duration_hours: row.duration_hours !== null && row.duration_hours !== undefined ? Number(row.duration_hours) : null,
-        description: row.description || null,
-        image_url: row.image_url || null,
+        cost: Number(row.cost),
+        duration_hours: row.duration_hours != null ? Number(row.duration_hours) : null,
+        description: row.description ?? null,
+        image_url: row.image_url ?? null,
     };
 }
 

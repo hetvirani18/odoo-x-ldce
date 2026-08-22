@@ -10,6 +10,7 @@ const db = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    dateStrings: true,
 });
 
 async function connectToDatabase() {
@@ -18,7 +19,4 @@ async function connectToDatabase() {
     console.log(`Connected to MySQL database "${DB_NAME}"`);
 }
 
-db.connectToDatabase = connectToDatabase;
-db.db = db;
-
-module.exports = db;
+module.exports = { db, connectToDatabase };

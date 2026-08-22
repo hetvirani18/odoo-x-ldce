@@ -1,10 +1,7 @@
-const db = require('../database/db');
+const { db } = require('../database/db');
 const { ERRORS } = require('../utils/AppError');
 const { TABLE_NAME } = require('../models/activity.model');
 
-/**
- * @param {number} id
- */
 async function findById(id) {
     const [rows] = await db.query(`SELECT * FROM ${TABLE_NAME} WHERE id = ?`, [id]);
     if (rows.length === 0) {
@@ -13,10 +10,6 @@ async function findById(id) {
     return rows[0];
 }
 
-/**
- * @param {number} cityId
- * @param {{ category?: string, maxCost?: number }} [filters]
- */
 async function findByCityId(cityId, filters = {}) {
     let sql = `SELECT * FROM ${TABLE_NAME} WHERE city_id = ?`;
     const params = [cityId];
@@ -25,12 +18,12 @@ async function findByCityId(cityId, filters = {}) {
         sql += ` AND category = ?`;
         params.push(filters.category);
     }
-    if (filters.maxCost !== undefined && filters.maxCost !== null) {
+    if (filters.maxCost != null) {
         sql += ` AND cost <= ?`;
-        params.push(Number(filters.maxCost));
+        params.push(filters.maxCost);
     }
 
-    sql += ` ORDER BY name ASC`;
+    sql += ` ORDER BY cost ASC`;
     const [rows] = await db.query(sql, params);
     return rows;
 }
@@ -51,12 +44,12 @@ async function searchByCityName(cityName, filters = {}) {
         sql += ` AND a.category = ?`;
         params.push(filters.category);
     }
-    if (filters.maxCost !== undefined && filters.maxCost !== null) {
+    if (filters.maxCost != null) {
         sql += ` AND a.cost <= ?`;
-        params.push(Number(filters.maxCost));
+        params.push(filters.maxCost);
     }
 
-    sql += ` ORDER BY a.name ASC`;
+    sql += ` ORDER BY a.cost ASC`;
     const [rows] = await db.query(sql, params);
     return rows;
 }

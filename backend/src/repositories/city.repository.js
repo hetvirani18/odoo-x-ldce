@@ -1,10 +1,7 @@
-const db = require('../database/db');
+const { db } = require('../database/db');
 const { ERRORS } = require('../utils/AppError');
 const { TABLE_NAME } = require('../models/city.model');
 
-/**
- * @param {number} id
- */
 async function findById(id) {
     const [rows] = await db.query(`SELECT * FROM ${TABLE_NAME} WHERE id = ?`, [id]);
     if (rows.length === 0) {
@@ -13,15 +10,13 @@ async function findById(id) {
     return rows[0];
 }
 
-/**
- * @param {string} query
- */
 async function searchByName(query) {
     const searchTerm = `%${query}%`;
     const [rows] = await db.query(
-        `SELECT * FROM ${TABLE_NAME} 
-         WHERE name LIKE ? OR country LIKE ? 
-         ORDER BY popularity DESC, name ASC`,
+        `SELECT * FROM ${TABLE_NAME}
+         WHERE name LIKE ? OR country LIKE ?
+         ORDER BY popularity DESC, name ASC
+         LIMIT 20`,
         [searchTerm, searchTerm]
     );
     return rows;

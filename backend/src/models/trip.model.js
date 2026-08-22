@@ -5,19 +5,18 @@ const TABLE_NAME = 'trips';
  * @property {number} id
  * @property {number} user_id
  * @property {string} name
- * @property {string} start_date
- * @property {string} end_date
+ * @property {string|Date} start_date
+ * @property {string|Date} end_date
  * @property {string|null} description
  * @property {string|null} cover_photo_url
  * @property {boolean|number} is_public
  * @property {string|null} share_token
- * @property {Date|string} created_at
+ * @property {Date} created_at
  */
 
 /**
  * @typedef {Object} TripView
  * @property {number} id
- * @property {number} user_id
  * @property {string} name
  * @property {string} start_date
  * @property {string} end_date
@@ -46,8 +45,10 @@ const TABLE_NAME = 'trips';
  * @property {string} name
  * @property {string} startDate
  * @property {string} endDate
- * @property {string} [description]
- * @property {string} [coverPhotoUrl]
+ * @property {string|null} [description]
+ * @property {string|null} [coverPhotoUrl]
+ * @property {boolean} [isPublic]
+ * @property {string|null} [shareToken]
  */
 
 /**
@@ -55,9 +56,23 @@ const TABLE_NAME = 'trips';
  * @property {string} [name]
  * @property {string} [startDate]
  * @property {string} [endDate]
- * @property {string} [description]
- * @property {string} [coverPhotoUrl]
+ * @property {string|null} [description]
+ * @property {string|null} [coverPhotoUrl]
+ * @property {boolean} [isPublic]
+ * @property {string|null} [shareToken]
  */
+
+function formatLocalDate(val) {
+    if (!val) return val;
+    if (typeof val === 'string') return val.split('T')[0].split(' ')[0];
+    if (val instanceof Date) {
+        const year = val.getFullYear();
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const day = String(val.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return String(val);
+}
 
 /**
  * @param {Trip} row
@@ -66,14 +81,13 @@ const TABLE_NAME = 'trips';
 function toTripView(row) {
     return {
         id: row.id,
-        user_id: row.user_id,
         name: row.name,
-        start_date: row.start_date,
-        end_date: row.end_date,
-        description: row.description || null,
-        cover_photo_url: row.cover_photo_url || null,
+        start_date: formatLocalDate(row.start_date),
+        end_date: formatLocalDate(row.end_date),
+        description: row.description ?? null,
+        cover_photo_url: row.cover_photo_url ?? null,
         is_public: Boolean(row.is_public),
-        share_token: row.share_token || null,
+        share_token: row.share_token ?? null,
         created_at: row.created_at,
     };
 }
@@ -86,13 +100,13 @@ function toPublicTripView(row) {
     return {
         id: row.id,
         name: row.name,
-        start_date: row.start_date,
-        end_date: row.end_date,
-        description: row.description || null,
-        cover_photo_url: row.cover_photo_url || null,
+        start_date: formatLocalDate(row.start_date),
+        end_date: formatLocalDate(row.end_date),
+        description: row.description ?? null,
+        cover_photo_url: row.cover_photo_url ?? null,
         is_public: Boolean(row.is_public),
         created_at: row.created_at,
     };
 }
 
-module.exports = { TABLE_NAME, toTripView, toPublicTripView };
+module.exports = { TABLE_NAME, toTripView, toPublicTripView, formatLocalDate };

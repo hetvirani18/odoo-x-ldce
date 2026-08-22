@@ -19,6 +19,8 @@ app.get('/api/health', (req, res) => {
 
 // Routers
 app.use('/api/auth', require('./routes/auth.route'));
+app.use('/api/users', require('./routes/user.route'));
+app.use('/api/admin', require('./routes/admin.route'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

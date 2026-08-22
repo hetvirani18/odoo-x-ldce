@@ -4,7 +4,13 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { authenticate } = require('../middleware/auth.middleware');
 const validateRequest = require('../middleware/validateRequest.middleware');
 const { successResponse } = require('../utils/response');
-const { signup, login, logout } = require('../controllers/auth.controller');
+const {
+    signup,
+    login,
+    logout,
+    forgotPassword,
+    resetPassword,
+} = require('../controllers/auth.controller');
 
 const SCHEMA = {
     SIGNUP: z.object({
@@ -15,6 +21,13 @@ const SCHEMA = {
     LOGIN: z.object({
         email: z.string().email('Invalid email address'),
         password: z.string().min(1, 'Password is required'),
+    }),
+    FORGOT_PASSWORD: z.object({
+        email: z.string().email('Invalid email address'),
+    }),
+    RESET_PASSWORD: z.object({
+        token: z.string().min(1, 'Token is required'),
+        new_password: z.string().min(6, 'Password must be at least 6 characters'),
     }),
 };
 
@@ -44,6 +57,26 @@ authRouter.post(
     asyncHandler(async (req, res) => {
         logout(res);
         res.json(successResponse(null, 'Logged out successfully'));
+    })
+);
+
+authRouter.post(
+    '/forgot-password',
+    validateRequest({ body: SCHEMA.FORGOT_PASSWORD }),
+    asyncHandler(async (req, res) => {
+        await forgotPassword(req.body.email);
+        res.json(
+            successResponse(null, 'If that email exists, a password reset link has been sent')
+        );
+    })
+);
+
+authRouter.post(
+    '/reset-password',
+    validateRequest({ body: SCHEMA.RESET_PASSWORD }),
+    asyncHandler(async (req, res) => {
+        await resetPassword(req.body);
+        res.json(successResponse(null, 'Password has been reset successfully'));
     })
 );
 

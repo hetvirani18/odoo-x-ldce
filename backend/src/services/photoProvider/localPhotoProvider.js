@@ -4,6 +4,13 @@ const crypto = require('crypto');
 
 const UPLOADS_DIR = path.join(__dirname, '../../../uploads');
 
+const MIME_EXTENSION_MAP = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+};
+
 /**
  * Ensures uploads directory exists
  */
@@ -20,17 +27,17 @@ async function ensureUploadsDir() {
  */
 const localPhotoProvider = {
     /**
-     * Upload photo to local disk
+     * Upload photo to local disk.
+     * Filename is ALWAYS generated securely server-side to prevent path traversal and collisions.
      * @param {Buffer|string} data - Buffer or base64 data
-     * @param {string} mimeType
-     * @param {string} [filename]
+     * @param {string} [mimeType='image/jpeg']
      * @returns {Promise<import('./photoProvider.interface').PhotoUploadResult>}
      */
-    async upload(data, mimeType = 'image/jpeg', filename) {
+    async upload(data, mimeType = 'image/jpeg') {
         await ensureUploadsDir();
 
-        const ext = mimeType.split('/')[1] || 'jpg';
-        const uniqueName = filename || `${crypto.randomUUID()}.${ext}`;
+        const ext = MIME_EXTENSION_MAP[mimeType.toLowerCase()] || 'jpg';
+        const uniqueName = `${crypto.randomUUID()}.${ext}`;
         const filePath = path.join(UPLOADS_DIR, uniqueName);
 
         const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'base64');

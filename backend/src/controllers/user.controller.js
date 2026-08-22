@@ -44,7 +44,7 @@ async function uploadPhoto(userId, file) {
         await photoService.deletePhoto(current.photo_url);
     }
 
-    const { url } = await photoService.uploadPhoto(file.buffer, file.mimetype, file.originalname);
+    const { url } = await photoService.uploadPhoto(file.buffer, file.mimetype);
     const updated = await userRepo.update(userId, { photo_url: url });
     return toUserView(updated);
 }

@@ -6,7 +6,7 @@
 
 /**
  * A photo provider must implement:
- *   upload(fileBuffer: Buffer, mimeType: string, filename?: string): Promise<PhotoUploadResult>
+ *   upload(fileBuffer: Buffer|string, mimeType?: string): Promise<PhotoUploadResult>
  *   delete(photoUrl: string): Promise<void>
  */
 

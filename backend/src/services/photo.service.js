@@ -5,13 +5,12 @@ const localPhotoProvider = require('./photoProvider/localPhotoProvider');
  */
 const photoService = {
     /**
-     * Upload user photo
+     * Upload user photo securely
      * @param {Buffer|string} data
-     * @param {string} mimeType
-     * @param {string} [filename]
+     * @param {string} [mimeType]
      */
-    async uploadPhoto(data, mimeType, filename) {
-        return localPhotoProvider.upload(data, mimeType, filename);
+    async uploadPhoto(data, mimeType) {
+        return localPhotoProvider.upload(data, mimeType);
     },
 
     /**

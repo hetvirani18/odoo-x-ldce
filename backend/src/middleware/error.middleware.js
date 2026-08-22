@@ -13,6 +13,12 @@ function errorHandler(error, req, res, next) {
     if (error.code === 'ER_DUP_ENTRY') {
         return res.status(409).json(errorResponse('Duplicate entry detected', 10001));
     }
+    if (error.name === 'MulterError') {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json(errorResponse('File size exceeds the 5MB limit', 10008));
+        }
+        return res.status(400).json(errorResponse(error.message, 10009));
+    }
     if (error instanceof SyntaxError && 'body' in error) {
         return res.status(400).json(errorResponse('Invalid JSON in request body', 10002));
     }

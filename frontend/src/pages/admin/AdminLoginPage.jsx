@@ -13,7 +13,7 @@ export default function AdminLoginPage() {
     const [login, { isLoading }] = useLoginMutation();
 
     useEffect(() => {
-        if (me && me.role === 'admin') {
+        if (me?.user?.role === 'admin') {
             navigate('/admin/users', { replace: true });
         }
     }, [me, navigate]);
@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
 
     const onSubmit = async (values) => {
         try {
-            const user = await login(values).unwrap();
+            const { user } = await login(values).unwrap();
             if (user?.role !== 'admin') {
                 setError('root', { message: 'Access denied: Administrator privileges required.' });
                 return;

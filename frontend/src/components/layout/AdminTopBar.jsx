@@ -63,9 +63,9 @@ export function AdminTopBar({ onLogout }) {
                 <div className="flex shrink-0 items-center gap-3">
                     <ThemeToggle />
                     <AccountMenu
-                        name={me?.name || 'Administrator'}
-                        email={me?.email || 'admin@globetrotter.io'}
-                        avatar={me?.avatar_url}
+                        name={me?.user?.name || 'Administrator'}
+                        email={me?.user?.email || 'admin@globetrotter.io'}
+                        avatar={me?.user?.photo_url}
                         tone="ink"
                         items={[
                             {

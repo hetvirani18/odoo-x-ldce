@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
                                             </tr>
                                         ) : (
                                             filteredUsers.map((u) => {
-                                                const isSelf = me?.id === u.id;
+                                                const isSelf = me?.user?.id === u.id;
                                                 return (
                                                     <tr
                                                         key={u.id || u.email}

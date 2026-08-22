@@ -5,31 +5,34 @@ import { IconBarChart, IconPieChart, IconTrendingUp, IconUsers, IconCompass } fr
 import { PageLoader } from '../../components/ui/Loading.jsx';
 import { useGetAdminStatsQuery } from '../../features/admin/adminApi.js';
 
-const DEFAULT_TREND = [12, 19, 15, 24, 21, 30, 27, 34];
-const DEFAULT_SEASONS = [
-    { label: 'Spring', value: 38 },
-    { label: 'Summer', value: 62 },
-    { label: 'Autumn', value: 27 },
-    { label: 'Winter', value: 15 },
-];
+function EmptyChart({ label }) {
+    return (
+        <div className="flex h-[160px] items-center justify-center text-[13px] text-ink-faint">{label}</div>
+    );
+}
 
 export default function AdminStatsPage() {
     const { data: stats, isLoading, isError, refetch } = useGetAdminStatsQuery();
 
     const topActivities = stats?.top_activities ?? [];
     const topCities = stats?.top_cities ?? [];
+    const weeklyTripTrend = stats?.weekly_trip_trend ?? [];
+    const weeklyUserSignups = stats?.weekly_user_signups ?? [];
+    const tripsBySeason = stats?.trips_by_season ?? [];
+    const tripsByStatus = stats?.trips_by_status ?? [];
+    const usersByRole = stats?.users_by_role ?? [];
 
-    const barChartData = topActivities.length > 0
-        ? topActivities.slice(0, 5).map((a) => ({
-              label: a.name.split(' ')[0],
-              value: Number(a.booking_count) || 1,
-          }))
-        : [
-              { label: 'Walking', value: 82 },
-              { label: 'Museum', value: 68 },
-              { label: 'Food', value: 54 },
-              { label: 'Hiking', value: 47 },
-          ];
+    const barChartData = topActivities.slice(0, 5).map((a) => ({
+        label: a.name.split(' ')[0],
+        value: Number(a.booking_count) || 0,
+    }));
+
+    const hasTrend = weeklyTripTrend.some((v) => v > 0);
+    const hasSignups = weeklyUserSignups.some((v) => v > 0);
+    const hasSeasons = tripsBySeason.some((d) => d.value > 0);
+    const hasStatus = tripsByStatus.some((d) => d.value > 0);
+    const hasRoles = usersByRole.some((d) => d.value > 0);
+    const hasActivities = barChartData.length > 0;
 
     return (
         <main className="mx-auto max-w-6xl px-6 py-10 pb-20">
@@ -85,7 +88,7 @@ export default function AdminStatsPage() {
                                         <span className="text-[12px] font-medium uppercase tracking-wider">Top Destination</span>
                                     </div>
                                     <p className="mt-2 truncate font-display text-[20px] font-semibold text-ink" title={topCities[0]?.name}>
-                                        {topCities[0]?.name || 'Kyoto'}
+                                        {topCities[0]?.name || 'No data yet'}
                                     </p>
                                 </Card>
 
@@ -95,7 +98,7 @@ export default function AdminStatsPage() {
                                         <span className="text-[12px] font-medium uppercase tracking-wider">Top Activity</span>
                                     </div>
                                     <p className="mt-2 truncate font-display text-[20px] font-semibold text-teal-ink" title={topActivities[0]?.name}>
-                                        {topActivities[0]?.name || 'Guided Tours'}
+                                        {topActivities[0]?.name || 'No data yet'}
                                     </p>
                                 </Card>
                             </div>
@@ -107,15 +110,59 @@ export default function AdminStatsPage() {
                                         <IconTrendingUp size={15} className="text-coral-ink" /> Trips created per week
                                     </p>
                                     <p className="mb-4 text-[12.5px] text-ink-faint">Last 8 weeks</p>
-                                    <LineChart data={DEFAULT_TREND} />
+                                    {hasTrend ? (
+                                        <LineChart data={weeklyTripTrend} />
+                                    ) : (
+                                        <EmptyChart label="No trips created in the last 8 weeks." />
+                                    )}
+                                </Card>
+
+                                <Card className="p-6 sm:col-span-2">
+                                    <p className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
+                                        <IconUsers size={15} className="text-coral-ink" /> New signups per week
+                                    </p>
+                                    <p className="mb-4 text-[12.5px] text-ink-faint">Last 8 weeks</p>
+                                    {hasSignups ? (
+                                        <LineChart data={weeklyUserSignups} />
+                                    ) : (
+                                        <EmptyChart label="No new signups in the last 8 weeks." />
+                                    )}
                                 </Card>
 
                                 <Card className="p-6">
                                     <p className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
                                         <IconPieChart size={15} className="text-teal-ink" /> Trips by season
                                     </p>
-                                    <p className="mb-5 text-[12.5px] text-ink-faint">Share of all trips this year</p>
-                                    <DonutChart data={DEFAULT_SEASONS} />
+                                    <p className="mb-5 text-[12.5px] text-ink-faint">By trip start date, all time</p>
+                                    {hasSeasons ? (
+                                        <DonutChart data={tripsBySeason} />
+                                    ) : (
+                                        <EmptyChart label="No trips scheduled yet." />
+                                    )}
+                                </Card>
+
+                                <Card className="p-6">
+                                    <p className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
+                                        <IconCompass size={15} className="text-teal-ink" /> Trips by status
+                                    </p>
+                                    <p className="mb-5 text-[12.5px] text-ink-faint">Upcoming, ongoing, completed</p>
+                                    {hasStatus ? (
+                                        <DonutChart data={tripsByStatus} />
+                                    ) : (
+                                        <EmptyChart label="No trips created yet." />
+                                    )}
+                                </Card>
+
+                                <Card className="p-6">
+                                    <p className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink">
+                                        <IconPieChart size={15} className="text-coral-ink" /> Users by role
+                                    </p>
+                                    <p className="mb-5 text-[12.5px] text-ink-faint">Traveler vs admin accounts</p>
+                                    {hasRoles ? (
+                                        <DonutChart data={usersByRole} />
+                                    ) : (
+                                        <EmptyChart label="No users yet." />
+                                    )}
                                 </Card>
 
                                 <Card className="p-6">
@@ -123,7 +170,11 @@ export default function AdminStatsPage() {
                                         <IconBarChart size={15} className="text-coral-ink" /> Top activities booked
                                     </p>
                                     <p className="mb-4 text-[12.5px] text-ink-faint">By scheduled activity count</p>
-                                    <BarChart data={barChartData} />
+                                    {hasActivities ? (
+                                        <BarChart data={barChartData} />
+                                    ) : (
+                                        <EmptyChart label="No activities booked yet." />
+                                    )}
                                 </Card>
                             </div>
                         </div>

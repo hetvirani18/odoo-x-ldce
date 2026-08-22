@@ -6,6 +6,6 @@ export default function AdminRoute() {
     const { data: me, isLoading, isError } = useGetMeQuery();
 
     if (isLoading) return <PageLoader />;
-    if (isError || !me || me.role !== 'admin') return <Navigate to="/admin/login" replace />;
+    if (isError || me?.user?.role !== 'admin') return <Navigate to="/admin/login" replace />;
     return <Outlet />;
 }

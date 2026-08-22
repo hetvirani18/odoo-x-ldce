@@ -84,7 +84,7 @@ export default function PublicTripPage() {
     return (
         <main className="min-h-screen bg-bg pb-20">
             <div
-                className="relative flex h-[280px] w-full items-end bg-cover bg-center text-white sm:h-[340px]"
+                className="relative flex h-[180px] w-full items-end bg-cover bg-center text-white sm:h-[220px]"
                 style={
                     coverUrl
                         ? { backgroundImage: `url(${coverUrl})` }
@@ -107,7 +107,7 @@ export default function PublicTripPage() {
 
             <div className="mx-auto max-w-3xl px-6">
                 {/* Owner strip */}
-                <div className="-mt-8 flex items-center gap-3 rounded-2xl border border-border-soft bg-surface p-4 shadow-sm">
+                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border-soft bg-surface p-4 shadow-sm">
                     <Avatar initials={getInitials(owner?.name)} size={44} photoUrl={resolveAssetUrl(owner?.photo_url)} />
                     <div>
                         <p className="text-[13.5px] text-ink-soft">Shared by</p>

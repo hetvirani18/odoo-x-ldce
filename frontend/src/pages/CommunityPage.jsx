@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { SearchToolbar, Avatar, Button, Input } from '../components/ui/ui.jsx';
 import { IconArrowRight, IconCalendar, IconPin, IconShare } from '../components/ui/icons.jsx';
 import { useListPublicTripsQuery } from '../features/publicShare/publicShareApi.js';
+import { getInitials, resolveAssetUrl } from '../lib/utils.js';
 
 export default function CommunityPage() {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function CommunityPage() {
     const formattedLiveTrips = livePublicTrips.map((t, idx) => ({
         id: String(t.id),
         owner: t.owner_name || 'Traveler',
+        ownerPhoto: t.owner_photo,
         trip: t.name,
         dates: `${t.start_date} – ${t.end_date}`,
         cities: [],
@@ -95,10 +97,8 @@ export default function CommunityPage() {
                                 className="flex flex-wrap items-center gap-5 rounded-3xl border border-border-soft bg-surface p-5 transition-shadow hover:shadow-[0_14px_30px_-18px_rgba(30,15,5,0.3)] sm:flex-nowrap"
                             >
                                 <Avatar
-                                    initials={t.owner
-                                        .split(' ')
-                                        .map((n) => n[0])
-                                        .join('')}
+                                    initials={getInitials(t.owner)}
+                                    photoUrl={resolveAssetUrl(t.ownerPhoto)}
                                     tone={t.tone}
                                 />
                                 <div className="min-w-0 flex-1">

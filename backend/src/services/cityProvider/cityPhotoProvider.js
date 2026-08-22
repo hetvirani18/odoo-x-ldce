@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { OPENTRIPMAP_API_KEY } = require('../../config/env');
+const { toRawCommonsUrl } = require('../../utils/wikimedia');
 
 /**
  * Finds a representative photo for a city via OpenTripMap.
@@ -47,7 +48,7 @@ async function fetchCityImage(cityName, lat = null, lng = null) {
                     { params: { apikey: OPENTRIPMAP_API_KEY }, timeout: 5000 }
                 );
                 if (detailRes.data?.preview?.source) {
-                    return detailRes.data.preview.source;
+                    return toRawCommonsUrl(detailRes.data.preview.source);
                 }
             } catch {
                 // This place has no detail record or no image — try the next one

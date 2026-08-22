@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { ERRORS } = require('../../utils/AppError');
 const { OPENTRIPMAP_API_KEY } = require('../../config/env');
+const { toRawCommonsUrl } = require('../../utils/wikimedia');
 
 // Maps our app's activity categories (see docs/database-design.md — activities.category)
 // to OpenTripMap's own fixed `kinds` taxonomy, which uses different vocabulary.
@@ -87,7 +88,7 @@ async function search(cityName, filters = {}) {
                         `https://api.opentripmap.com/0.1/en/places/xid/${place.xid}`,
                         { params: { apikey: OPENTRIPMAP_API_KEY }, timeout: 5000 }
                     );
-                    preview = detailRes.data?.preview?.source || null;
+                    preview = toRawCommonsUrl(detailRes.data?.preview?.source || null);
                     extract = detailRes.data?.wikipedia_extracts?.text || null;
                 } catch {
                     // This place has no detail record — fall back to the list data only

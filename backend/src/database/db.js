@@ -18,4 +18,7 @@ async function connectToDatabase() {
     console.log(`Connected to MySQL database "${DB_NAME}"`);
 }
 
-module.exports = { db, connectToDatabase };
+db.connectToDatabase = connectToDatabase;
+db.db = db;
+
+module.exports = db;

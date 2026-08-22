@@ -2,7 +2,7 @@ const StopRepository = require('../repositories/stop.repository');
 const TripActivityRepository = require('../repositories/tripActivity.repository');
 const CostEstimateRepository = require('../repositories/costEstimate.repository');
 const costIndexProvider = require('./pricingProvider/costIndexPricingProvider');
-const amadeusProvider = require('./pricingProvider/amadeusPricingProvider');
+const flightFareProvider = require('./pricingProvider/flightFarePricingProvider');
 const { toCostEstimateView } = require('../models/costEstimate.model');
 
 const FLAT_HOP_TRANSPORT_ESTIMATE = 100.0;
@@ -59,10 +59,12 @@ async function computeTripBudgetBreakdown(tripId) {
         if (i > 0) {
             const prevStop = stops[i - 1];
             try {
-                const estimate = await amadeusProvider.estimateTransport(
+                const estimate = await flightFareProvider.estimateTransport(
                     prevStop.city_name,
                     stop.city_name,
-                    stop.start_date
+                    stop.start_date,
+                    { lat: prevStop.city_lat, lng: prevStop.city_lng },
+                    { lat: stop.city_lat, lng: stop.city_lng }
                 );
                 stopTransportCost = Number(estimate.cost);
             } catch (err) {

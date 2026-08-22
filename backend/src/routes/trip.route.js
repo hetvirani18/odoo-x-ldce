@@ -80,4 +80,8 @@ tripRouter.delete(
     })
 );
 
+const { tripStopsRouter } = require('./stop.route');
+
+tripRouter.use('/:tripId/stops', tripStopsRouter);
+
 module.exports = tripRouter;

@@ -29,12 +29,18 @@ async function listTrips(userId) {
     return trips.map(toTripView);
 }
 
+const StopRepository = require('../repositories/stop.repository');
+const { toStopView } = require('../models/stop.model');
+
 async function getTrip(tripId, requestingUserId) {
     const trip = await TripRepository.findById(tripId);
     if (trip.user_id !== requestingUserId) {
         throw ERRORS.TRIP_NOT_OWNED;
     }
-    return toTripView(trip);
+    const stops = await StopRepository.findByTripId(tripId);
+    const view = toTripView(trip);
+    view.stops = stops.map(toStopView);
+    return view;
 }
 
 async function updateTrip(tripId, requestingUserId, body) {

@@ -5,3 +5,5 @@ export function PageLoader() {
         </div>
     );
 }
+
+export default PageLoader;

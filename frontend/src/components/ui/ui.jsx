@@ -50,13 +50,14 @@ export function IconButton({ children, className = "", ...props }) {
   );
 }
 
-export function Field({ label, className = "", children }) {
+export function Field({ label, error, className = "", children }) {
   return (
     <label className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
         <span className="text-[13px] font-medium text-ink-soft px-0.5">{label}</span>
       )}
       {children}
+      {error && <span className="text-[12.5px] text-coral-ink px-0.5">{error}</span>}
     </label>
   );
 }

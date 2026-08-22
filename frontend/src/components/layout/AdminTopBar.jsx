@@ -1,10 +1,11 @@
 import { motion } from 'motion/react';
-import { Link, useLocation } from 'react-router';
-import { IconCompass, IconLogOut, IconShield, IconGlobe, IconBarChart, IconTrendingUp } from '../ui/icons.jsx';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { IconCompass, IconLogOut, IconShield, IconGlobe, IconBarChart, IconTrendingUp, IconUser } from '../ui/icons.jsx';
 import { Badge } from '../ui/ui.jsx';
 import { ThemeToggle } from './ThemeToggle.jsx';
 import { AccountMenu } from './AccountMenu.jsx';
 import { useGetMeQuery } from '../../features/auth/authApi.js';
+import { resolveAssetUrl } from '../../lib/utils.js';
 
 const ADMIN_TABS = [
     { path: '/admin/users', label: 'Manage users', icon: IconShield },
@@ -15,6 +16,7 @@ const ADMIN_TABS = [
 
 export function AdminTopBar({ onLogout }) {
     const { pathname } = useLocation();
+    const navigate = useNavigate();
     const { data: me } = useGetMeQuery();
 
     return (
@@ -63,11 +65,16 @@ export function AdminTopBar({ onLogout }) {
                 <div className="flex shrink-0 items-center gap-3">
                     <ThemeToggle />
                     <AccountMenu
-                        name={me?.user?.name || 'Administrator'}
-                        email={me?.user?.email || 'admin@globetrotter.io'}
-                        avatar={me?.user?.photo_url}
+                        name={me?.user?.name}
+                        email={me?.user?.email}
+                        photoUrl={resolveAssetUrl(me?.user?.photo_url)}
                         tone="ink"
                         items={[
+                            {
+                                label: 'View profile',
+                                icon: <IconUser size={15} className="text-ink-faint" />,
+                                onClick: () => navigate('/admin/profile'),
+                            },
                             {
                                 label: 'Log out',
                                 icon: <IconLogOut size={15} />,

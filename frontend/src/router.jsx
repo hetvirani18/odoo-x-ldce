@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
                     { path: '/admin/cities', element: <AdminCitiesPage /> },
                     { path: '/admin/activities', element: <AdminActivitiesPage /> },
                     { path: '/admin/stats', element: <AdminStatsPage /> },
+                    { path: '/admin/profile', element: <ProfilePage /> },
                 ],
             },
         ],

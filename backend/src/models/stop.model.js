@@ -43,6 +43,18 @@ const TABLE_NAME = 'stops';
  * @property {number} [cityId]
  */
 
+function formatLocalDate(val) {
+    if (!val) return val;
+    if (typeof val === 'string') return val.split('T')[0].split(' ')[0];
+    if (val instanceof Date) {
+        const year = val.getFullYear();
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const day = String(val.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return String(val);
+}
+
 /**
  * @param {Stop} row
  * @returns {StopView}
@@ -52,8 +64,8 @@ function toStopView(row) {
         id: row.id,
         trip_id: row.trip_id,
         city_id: row.city_id,
-        start_date: row.start_date instanceof Date ? row.start_date.toISOString().split('T')[0] : row.start_date,
-        end_date: row.end_date instanceof Date ? row.end_date.toISOString().split('T')[0] : row.end_date,
+        start_date: formatLocalDate(row.start_date),
+        end_date: formatLocalDate(row.end_date),
         order_index: row.order_index,
     };
 
@@ -71,4 +83,4 @@ function toStopView(row) {
     return view;
 }
 
-module.exports = { TABLE_NAME, toStopView };
+module.exports = { TABLE_NAME, toStopView, formatLocalDate };

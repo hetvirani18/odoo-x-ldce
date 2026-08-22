@@ -1,8 +1,8 @@
 const http = require('http');
 const jwt = require('jsonwebtoken');
-const app = require('./src/app');
-const { JWT_SECRET } = require('./src/config/env');
-const { db } = require('./src/database/db');
+const app = require('../src/app');
+const { JWT_SECRET } = require('../src/config/env');
+const { db } = require('../src/database/db');
 
 // In-memory mock store
 let mockCities = [
@@ -48,8 +48,8 @@ db.query = async function (sql, params = []) {
             id: nextTripId++,
             user_id,
             name,
-            start_date: new Date(start_date),
-            end_date: new Date(end_date),
+            start_date: String(start_date).split('T')[0],
+            end_date: String(end_date).split('T')[0],
             description,
             cover_photo_url,
             is_public: Boolean(is_public),
@@ -67,23 +67,20 @@ db.query = async function (sql, params = []) {
         return [found];
     }
 
-    // STOPS - MAX ORDER
-    if (trimmed.includes('MAX(order_index)')) {
-        const tripId = Number(params[0]);
-        const tripStops = mockStops.filter((s) => s.trip_id === tripId);
-        const max = tripStops.reduce((m, s) => Math.max(m, s.order_index), -1);
-        return [[{ max_order: max }]];
-    }
-
     // STOPS - INSERT
     if (trimmed.startsWith('INSERT INTO stops')) {
-        const [trip_id, city_id, start_date, end_date, order_index] = params;
+        const trip_id = params[0];
+        const city_id = params[1];
+        const start_date = String(params[2]).split('T')[0];
+        const end_date = String(params[3]).split('T')[0];
+        const order_index = 0;
+
         const newStop = {
             id: nextStopId++,
             trip_id,
             city_id,
-            start_date: new Date(start_date),
-            end_date: new Date(end_date),
+            start_date,
+            end_date,
             order_index,
         };
         mockStops.push(newStop);
@@ -114,7 +111,7 @@ db.query = async function (sql, params = []) {
             id: nextTripActivityId++,
             stop_id,
             activity_id,
-            scheduled_date: new Date(scheduled_date),
+            scheduled_date: String(scheduled_date).split('T')[0],
             scheduled_time: scheduled_time ?? null,
         };
         mockTripActivities.push(item);
@@ -184,7 +181,7 @@ db.query = async function (sql, params = []) {
         const item = mockTripActivities.find((ta) => ta.id === id);
         if (item) {
             let pIndex = 0;
-            if (sql.includes('scheduled_date = ?')) item.scheduled_date = new Date(params[pIndex++]);
+            if (sql.includes('scheduled_date = ?')) item.scheduled_date = String(params[pIndex++]).split('T')[0];
             if (sql.includes('scheduled_time = ?')) item.scheduled_time = params[pIndex++];
         }
         return [{ affectedRows: item ? 1 : 0 }];
@@ -325,7 +322,7 @@ async function runTests() {
         const assigned1 = res6.body.data;
         assert(
             '6. POST /api/stops/:stopId/activities schedules Activity 1 (Eiffel Tower) with details',
-            res6.status === 201 && assigned1?.activity?.name === 'Eiffel Tower Tour' && assigned1?.scheduled_time === '10:00'
+            res6.status === 201 && assigned1?.activity?.name === 'Eiffel Tower Tour' && assigned1?.scheduled_time === '10:00' && assigned1?.scheduled_date === '2026-07-02'
         );
 
         // Test 7: Successfully assign Activity 2 (Louvre Museum, July 3 at 14:00) -> 201

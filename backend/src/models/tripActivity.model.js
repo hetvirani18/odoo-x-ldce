@@ -40,6 +40,18 @@ const TABLE_NAME = 'trip_activities';
  * @property {string|null} [scheduledTime]
  */
 
+function formatLocalDate(val) {
+    if (!val) return val;
+    if (typeof val === 'string') return val.split('T')[0].split(' ')[0];
+    if (val instanceof Date) {
+        const year = val.getFullYear();
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const day = String(val.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return String(val);
+}
+
 /**
  * @param {TripActivity} row
  * @returns {TripActivityView}
@@ -49,7 +61,7 @@ function toTripActivityView(row) {
         id: row.id,
         stop_id: row.stop_id,
         activity_id: row.activity_id,
-        scheduled_date: row.scheduled_date instanceof Date ? row.scheduled_date.toISOString().split('T')[0] : row.scheduled_date,
+        scheduled_date: formatLocalDate(row.scheduled_date),
         scheduled_time: row.scheduled_time ?? null,
     };
 
@@ -69,4 +81,4 @@ function toTripActivityView(row) {
     return view;
 }
 
-module.exports = { TABLE_NAME, toTripActivityView };
+module.exports = { TABLE_NAME, toTripActivityView, formatLocalDate };

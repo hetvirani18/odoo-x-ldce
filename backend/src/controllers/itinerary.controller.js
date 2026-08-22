@@ -5,8 +5,13 @@ const { toStopView } = require('../models/stop.model');
 const { ERRORS } = require('../utils/AppError');
 
 function formatYMD(dateVal) {
+    if (!dateVal) return dateVal;
+    if (typeof dateVal === 'string') return dateVal.split('T')[0].split(' ')[0];
     if (dateVal instanceof Date) {
-        return dateVal.toISOString().split('T')[0];
+        const year = dateVal.getFullYear();
+        const month = String(dateVal.getMonth() + 1).padStart(2, '0');
+        const day = String(dateVal.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
     return String(dateVal);
 }
@@ -30,15 +35,12 @@ async function addStop(tripId, requestingUserId, body) {
         throw ERRORS.INVALID_DATE_RANGE;
     }
 
-    const maxOrder = await StopRepository.getMaxOrderIndex(tripId);
-    const orderIndex = body.order_index ?? (maxOrder + 1);
-
     const stop = await StopRepository.create({
         tripId,
         cityId: body.city_id,
         startDate: body.start_date,
         endDate: body.end_date,
-        orderIndex,
+        orderIndex: body.order_index,
     });
 
     return toStopView(stop);
@@ -110,11 +112,13 @@ async function reorderStops(tripId, requestingUserId, body) {
     const currentStops = await StopRepository.findByTripId(tripId);
     const currentStopIds = new Set(currentStops.map((s) => s.id));
 
-    // Validate that all provided IDs belong to this trip
-    for (const stopId of body.stop_ids) {
-        if (!currentStopIds.has(stopId)) {
-            throw ERRORS.STOP_NOT_FOUND;
-        }
+    // Validate that payload covers all stops on the trip without missing or duplicate IDs
+    if (
+        body.stop_ids.length !== currentStops.length ||
+        new Set(body.stop_ids).size !== body.stop_ids.length ||
+        !body.stop_ids.every((id) => currentStopIds.has(id))
+    ) {
+        throw ERRORS.VALIDATION_ERROR;
     }
 
     for (let i = 0; i < body.stop_ids.length; i++) {

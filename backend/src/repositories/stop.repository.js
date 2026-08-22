@@ -51,19 +51,39 @@ async function getMaxOrderIndex(tripId) {
 
 /** @param {import('../models/stop.model').CreateStopInput} input */
 async function create(input) {
-    const [result] = await db.query(
-        `INSERT INTO ${TABLE_NAME} (trip_id, city_id, start_date, end_date, order_index)
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-            input.tripId,
-            input.cityId,
-            input.startDate,
-            input.endDate,
-            input.orderIndex ?? 0,
-        ]
-    );
+    let insertId;
 
-    return findById(result.insertId);
+    if (input.orderIndex !== undefined && input.orderIndex !== null) {
+        const [result] = await db.query(
+            `INSERT INTO ${TABLE_NAME} (trip_id, city_id, start_date, end_date, order_index)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+                input.tripId,
+                input.cityId,
+                input.startDate,
+                input.endDate,
+                input.orderIndex,
+            ]
+        );
+        insertId = result.insertId;
+    } else {
+        const [result] = await db.query(
+            `INSERT INTO ${TABLE_NAME} (trip_id, city_id, start_date, end_date, order_index)
+             SELECT ?, ?, ?, ?, COALESCE(MAX(order_index) + 1, 0)
+             FROM ${TABLE_NAME}
+             WHERE trip_id = ?`,
+            [
+                input.tripId,
+                input.cityId,
+                input.startDate,
+                input.endDate,
+                input.tripId,
+            ]
+        );
+        insertId = result.insertId;
+    }
+
+    return findById(insertId);
 }
 
 /**

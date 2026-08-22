@@ -50,6 +50,18 @@ const TABLE_NAME = 'trips';
  * @property {string|null} [shareToken]
  */
 
+function formatLocalDate(val) {
+    if (!val) return val;
+    if (typeof val === 'string') return val.split('T')[0].split(' ')[0];
+    if (val instanceof Date) {
+        const year = val.getFullYear();
+        const month = String(val.getMonth() + 1).padStart(2, '0');
+        const day = String(val.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return String(val);
+}
+
 /**
  * @param {Trip} row
  * @returns {TripView}
@@ -58,8 +70,8 @@ function toTripView(row) {
     return {
         id: row.id,
         name: row.name,
-        start_date: row.start_date instanceof Date ? row.start_date.toISOString().split('T')[0] : row.start_date,
-        end_date: row.end_date instanceof Date ? row.end_date.toISOString().split('T')[0] : row.end_date,
+        start_date: formatLocalDate(row.start_date),
+        end_date: formatLocalDate(row.end_date),
         description: row.description ?? null,
         cover_photo_url: row.cover_photo_url ?? null,
         is_public: Boolean(row.is_public),
@@ -68,4 +80,4 @@ function toTripView(row) {
     };
 }
 
-module.exports = { TABLE_NAME, toTripView };
+module.exports = { TABLE_NAME, toTripView, formatLocalDate };

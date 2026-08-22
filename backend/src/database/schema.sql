@@ -1,5 +1,7 @@
 -- GlobeTrotter database schema (MySQL)
 -- Mirrors docs/database-design.md — that file has the full rationale for these choices.
+CREATE DATABASE IF NOT EXISTS globetrotter;
+USE globetrotter;
 
 CREATE TABLE users (
     id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

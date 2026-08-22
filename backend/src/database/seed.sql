@@ -1,5 +1,7 @@
 -- Seed data — cost_rates is required for the budget formula to work at all.
 -- Cities/activities below are a small starter set for local dev/demo; expand as needed.
+CREATE DATABASE IF NOT EXISTS globetrotter;
+USE globetrotter;
 
 INSERT INTO cost_rates (cost_index, per_night_rate, per_day_meal_rate) VALUES
     ('low',    35.00, 15.00),

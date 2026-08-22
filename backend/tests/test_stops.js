@@ -1,8 +1,8 @@
 const http = require('http');
 const jwt = require('jsonwebtoken');
-const app = require('./src/app');
-const { JWT_SECRET } = require('./src/config/env');
-const { db } = require('./src/database/db');
+const app = require('../src/app');
+const { JWT_SECRET } = require('../src/config/env');
+const { db } = require('../src/database/db');
 
 // In-memory mock store
 let mockCities = [
@@ -34,8 +34,8 @@ db.query = async function (sql, params = []) {
             id: nextTripId++,
             user_id,
             name,
-            start_date: new Date(start_date),
-            end_date: new Date(end_date),
+            start_date: String(start_date).split('T')[0],
+            end_date: String(end_date).split('T')[0],
             description,
             cover_photo_url,
             is_public: Boolean(is_public),
@@ -53,30 +53,27 @@ db.query = async function (sql, params = []) {
         return [found];
     }
 
-    // TRIPS - SELECT BY USER_ID
-    if (trimmed.startsWith('SELECT * FROM trips WHERE user_id = ?')) {
-        const userId = Number(params[0]);
-        const found = mockTrips.filter((t) => t.user_id === userId);
-        return [found];
-    }
-
-    // STOPS - MAX ORDER
-    if (trimmed.includes('MAX(order_index)')) {
-        const tripId = Number(params[0]);
-        const tripStops = mockStops.filter((s) => s.trip_id === tripId);
-        const max = tripStops.reduce((m, s) => Math.max(m, s.order_index), -1);
-        return [[{ max_order: max }]];
-    }
-
-    // STOPS - INSERT
+    // STOPS - INSERT (explicit or atomic SELECT)
     if (trimmed.startsWith('INSERT INTO stops')) {
-        const [trip_id, city_id, start_date, end_date, order_index] = params;
+        const trip_id = params[0];
+        const city_id = params[1];
+        const start_date = String(params[2]).split('T')[0];
+        const end_date = String(params[3]).split('T')[0];
+
+        let order_index;
+        if (sql.includes('SELECT') && sql.includes('COALESCE(MAX(order_index) + 1, 0)')) {
+            const tripStops = mockStops.filter((s) => s.trip_id === trip_id);
+            order_index = tripStops.length > 0 ? Math.max(...tripStops.map((s) => s.order_index)) + 1 : 0;
+        } else {
+            order_index = params[4] ?? 0;
+        }
+
         const newStop = {
             id: nextStopId++,
             trip_id,
             city_id,
-            start_date: new Date(start_date),
-            end_date: new Date(end_date),
+            start_date,
+            end_date,
             order_index,
         };
         mockStops.push(newStop);
@@ -120,7 +117,7 @@ db.query = async function (sql, params = []) {
         return [matched];
     }
 
-    // STOPS - UPDATE
+    // STOPS - UPDATE ORDER_INDEX
     if (trimmed.startsWith('UPDATE stops SET order_index = ? WHERE id = ?')) {
         const [order_index, id] = params;
         const stop = mockStops.find((s) => s.id === Number(id));
@@ -128,13 +125,14 @@ db.query = async function (sql, params = []) {
         return [{ affectedRows: stop ? 1 : 0 }];
     }
 
+    // STOPS - DYNAMIC UPDATE
     if (trimmed.startsWith('UPDATE stops SET')) {
         const id = Number(params[params.length - 1]);
         const stop = mockStops.find((s) => s.id === id);
         if (stop) {
             let pIndex = 0;
-            if (sql.includes('start_date = ?')) stop.start_date = new Date(params[pIndex++]);
-            if (sql.includes('end_date = ?')) stop.end_date = new Date(params[pIndex++]);
+            if (sql.includes('start_date = ?')) stop.start_date = String(params[pIndex++]).split('T')[0];
+            if (sql.includes('end_date = ?')) stop.end_date = String(params[pIndex++]).split('T')[0];
             if (sql.includes('order_index = ?')) stop.order_index = Number(params[pIndex++]);
             if (sql.includes('city_id = ?')) stop.city_id = Number(params[pIndex++]);
         }
@@ -252,7 +250,7 @@ async function runTests() {
         // Test 4: Add stop with dates outside trip bounds
         const res4 = await makeRequest(server, 'POST', `/api/trips/${tripId}/stops`, { Cookie: user1Cookie }, {
             city_id: 1,
-            start_date: '2026-06-25', // before trip start July 1
+            start_date: '2026-06-25',
             end_date: '2026-07-05',
         });
         assert('4. POST /api/trips/:tripId/stops with dates outside trip bounds returns 422 Invalid Date Range', res4.status === 422 && res4.body.error?.code === 30004);
@@ -265,8 +263,8 @@ async function runTests() {
         });
         const stop1 = res5.body.data;
         assert(
-            '5. POST /api/trips/:tripId/stops adds Stop 1 (Paris) with order_index 0',
-            res5.status === 201 && stop1?.city?.name === 'Paris' && stop1?.order_index === 0
+            '5. POST /api/trips/:tripId/stops adds Stop 1 (Paris) with order_index 0 and exact date',
+            res5.status === 201 && stop1?.city?.name === 'Paris' && stop1?.order_index === 0 && stop1?.start_date === '2026-07-01'
         );
 
         // Test 6: Add Stop 2 (Rome)
@@ -277,7 +275,7 @@ async function runTests() {
         });
         const stop2 = res6.body.data;
         assert(
-            '6. POST /api/trips/:tripId/stops adds Stop 2 (Rome) with auto-incremented order_index 1',
+            '6. POST /api/trips/:tripId/stops adds Stop 2 (Rome) with atomic order_index 1',
             res6.status === 201 && stop2?.city?.name === 'Rome' && stop2?.order_index === 1
         );
 
@@ -317,27 +315,36 @@ async function runTests() {
             res10.status === 200 && res10.body.data?.start_date === '2026-07-02'
         );
 
-        // Test 11: Reorder stops (PUT /api/trips/:tripId/stops/reorder) -> [Barcelona, Paris, Rome]
-        const res11 = await makeRequest(server, 'PUT', `/api/trips/${tripId}/stops/reorder`, { Cookie: user1Cookie }, {
+        // Test 11: Partial reorder rejection (passing only 2 of 3 stop IDs) -> 422
+        const res11a = await makeRequest(server, 'PUT', `/api/trips/${tripId}/stops/reorder`, { Cookie: user1Cookie }, {
+            stop_ids: [stop3.id, stop1.id],
+        });
+        assert(
+            '11. PUT /api/trips/:tripId/stops/reorder rejects partial stop list (422)',
+            res11a.status === 422 && res11a.body.error?.code === 10002
+        );
+
+        // Test 12: Complete valid reorder (PUT /api/trips/:tripId/stops/reorder) -> [Barcelona, Paris, Rome]
+        const res11b = await makeRequest(server, 'PUT', `/api/trips/${tripId}/stops/reorder`, { Cookie: user1Cookie }, {
             stop_ids: [stop3.id, stop1.id, stop2.id],
         });
-        const reordered = res11.body.data;
+        const reordered = res11b.body.data;
         assert(
-            '11. PUT /api/trips/:tripId/stops/reorder updates order_index for all stops',
-            res11.status === 200 &&
+            '12. PUT /api/trips/:tripId/stops/reorder updates order_index for all stops when complete list provided',
+            res11b.status === 200 &&
             reordered?.[0]?.id === stop3.id && reordered?.[0]?.order_index === 0 &&
             reordered?.[1]?.id === stop1.id && reordered?.[1]?.order_index === 1 &&
             reordered?.[2]?.id === stop2.id && reordered?.[2]?.order_index === 2
         );
 
-        // Test 12: Delete stop (DELETE /api/stops/:id)
+        // Test 13: Delete stop (DELETE /api/stops/:id)
         const res12 = await makeRequest(server, 'DELETE', `/api/stops/${stop1.id}`, { Cookie: user1Cookie });
-        assert('12. DELETE /api/stops/:id deletes stop successfully', res12.status === 200 && res12.body.success === true);
+        assert('13. DELETE /api/stops/:id deletes stop successfully', res12.status === 200 && res12.body.success === true);
 
-        // Test 13: List stops after delete shows 2 remaining
+        // Test 14: List stops after delete shows 2 remaining
         const res13 = await makeRequest(server, 'GET', `/api/trips/${tripId}/stops`, { Cookie: user1Cookie });
         assert(
-            '13. GET /api/trips/:tripId/stops returns 2 stops after deletion',
+            '14. GET /api/trips/:tripId/stops returns 2 stops after deletion',
             res13.status === 200 && res13.body.data.length === 2
         );
 

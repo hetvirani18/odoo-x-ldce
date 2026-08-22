@@ -1,8 +1,8 @@
 const http = require('http');
 const jwt = require('jsonwebtoken');
-const app = require('./src/app');
-const { JWT_SECRET } = require('./src/config/env');
-const { db } = require('./src/database/db');
+const app = require('../src/app');
+const { JWT_SECRET } = require('../src/config/env');
+const { db } = require('../src/database/db');
 
 // In-memory mock store for standalone verification without active MySQL setup
 let mockDbTrips = [];
@@ -19,8 +19,8 @@ db.query = async function (sql, params = []) {
             id: nextId++,
             user_id,
             name,
-            start_date: new Date(start_date),
-            end_date: new Date(end_date),
+            start_date: String(start_date).split('T')[0],
+            end_date: String(end_date).split('T')[0],
             description,
             cover_photo_url,
             is_public: Boolean(is_public),
@@ -50,11 +50,10 @@ db.query = async function (sql, params = []) {
         const id = Number(params[params.length - 1]);
         const trip = mockDbTrips.find((t) => t.id === id);
         if (trip) {
-            // parse updated fields
             let pIndex = 0;
             if (sql.includes('name = ?')) trip.name = params[pIndex++];
-            if (sql.includes('start_date = ?')) trip.start_date = new Date(params[pIndex++]);
-            if (sql.includes('end_date = ?')) trip.end_date = new Date(params[pIndex++]);
+            if (sql.includes('start_date = ?')) trip.start_date = String(params[pIndex++]).split('T')[0];
+            if (sql.includes('end_date = ?')) trip.end_date = String(params[pIndex++]).split('T')[0];
             if (sql.includes('description = ?')) trip.description = params[pIndex++];
             if (sql.includes('cover_photo_url = ?')) trip.cover_photo_url = params[pIndex++];
             if (sql.includes('is_public = ?')) trip.is_public = Boolean(params[pIndex++]);
@@ -71,6 +70,11 @@ db.query = async function (sql, params = []) {
             mockDbTrips.splice(idx, 1);
         }
         return [{ affectedRows: 1 }];
+    }
+
+    // STOPS FOR NESTED TRIP DETAIL VIEW
+    if (trimmed.startsWith('SELECT stops.*')) {
+        return [[]];
     }
 
     return [[]];
@@ -183,6 +187,8 @@ async function runTests() {
             res4.status === 201 &&
             res4.body?.success === true &&
             createdTrip?.name === 'Europe Exploration' &&
+            createdTrip?.start_date === '2026-07-01' &&
+            createdTrip?.end_date === '2026-07-15' &&
             createdTrip?.is_public === true &&
             typeof createdTrip?.share_token === 'string' &&
             createdTrip?.share_token.length > 0
@@ -193,12 +199,13 @@ async function runTests() {
         // Test 5: List trips (GET /api/trips)
         const res5 = await makeRequest(server, 'GET', '/api/trips', { Cookie: user1Cookie });
         assert(
-            '5. GET /api/trips lists user trips',
+            '5. GET /api/trips lists user trips with exact date string',
             res5.status === 200 &&
             res5.body?.success === true &&
             Array.isArray(res5.body.data) &&
             res5.body.data.length === 1 &&
-            res5.body.data[0].id === tripId
+            res5.body.data[0].id === tripId &&
+            res5.body.data[0].start_date === '2026-07-01'
         );
 
         // Test 6: Get trip by ID by owner (GET /api/trips/:id)

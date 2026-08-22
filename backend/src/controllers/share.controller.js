@@ -3,7 +3,7 @@ const TripRepository = require('../repositories/trip.repository');
 const StopRepository = require('../repositories/stop.repository');
 const TripActivityRepository = require('../repositories/tripActivity.repository');
 const CostEstimateRepository = require('../repositories/costEstimate.repository');
-const { toPublicTripView } = require('../models/trip.model');
+const { toPublicTripView, formatLocalDate } = require('../models/trip.model');
 const { toCostEstimateView } = require('../models/costEstimate.model');
 const { ERRORS } = require('../utils/AppError');
 const { FRONTEND_URL } = require('../config/env');
@@ -99,4 +99,19 @@ async function getPublicTrip(shareToken) {
     };
 }
 
-module.exports = { shareTrip, unshareTrip, getPublicTrip };
+async function listPublicTrips() {
+    const trips = await TripRepository.listPublicTrips();
+    return trips.map((t) => ({
+        id: t.id,
+        name: t.name,
+        start_date: formatLocalDate(t.start_date),
+        end_date: formatLocalDate(t.end_date),
+        description: t.description,
+        cover_photo_url: t.cover_photo_url,
+        share_token: t.share_token,
+        owner_name: t.owner_name,
+        owner_photo: t.owner_photo,
+    }));
+}
+
+module.exports = { shareTrip, unshareTrip, getPublicTrip, listPublicTrips };

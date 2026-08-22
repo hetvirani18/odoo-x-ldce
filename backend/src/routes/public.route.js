@@ -1,9 +1,18 @@
 const { Router } = require('express');
 const asyncHandler = require('../middleware/asyncHandler');
 const { successResponse } = require('../utils/response');
-const { getPublicTrip } = require('../controllers/share.controller');
+const { getPublicTrip, listPublicTrips } = require('../controllers/share.controller');
 
 const publicRouter = Router();
+
+// GET /api/public/trips
+publicRouter.get(
+    '/trips',
+    asyncHandler(async (req, res) => {
+        const trips = await listPublicTrips();
+        res.json(successResponse(trips, 'Public trips fetched successfully'));
+    })
+);
 
 // GET /api/public/trips/:shareToken
 publicRouter.get(

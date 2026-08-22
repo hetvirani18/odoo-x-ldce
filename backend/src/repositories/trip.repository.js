@@ -110,6 +110,20 @@ async function updateShareStatus(id, isPublic, shareToken) {
     return findById(id);
 }
 
+async function listPublicTrips(limit = 20) {
+    const [rows] = await db.query(
+        `SELECT t.id, t.name, t.start_date, t.end_date, t.description, t.cover_photo_url, t.share_token,
+                u.name as owner_name, u.photo_url as owner_photo
+         FROM ${TABLE_NAME} t
+         JOIN users u ON t.user_id = u.id
+         WHERE t.is_public = 1
+         ORDER BY t.created_at DESC
+         LIMIT ?`,
+        [limit]
+    );
+    return rows;
+}
+
 async function deleteById(id) {
     await db.query(`DELETE FROM ${TABLE_NAME} WHERE id = ?`, [id]);
 }
@@ -118,6 +132,7 @@ module.exports = {
     findById,
     findByUserId,
     findByShareToken,
+    listPublicTrips,
     create,
     update,
     updateShareStatus,

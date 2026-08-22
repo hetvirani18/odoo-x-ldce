@@ -12,7 +12,8 @@ const gradients = {
   gold: "radial-gradient(120% 100% at 0% 0%, oklch(82% 0.12 85) 0%, oklch(64% 0.13 55) 100%)",
 };
 
-export function RegionCard({ name, country, tone = "coral", index = 0 }) {
+export function RegionCard({ name, country, imageUrl, tone = "coral", index = 0 }) {
+  const resolvedImageUrl = resolveAssetUrl(imageUrl);
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -20,8 +21,8 @@ export function RegionCard({ name, country, tone = "coral", index = 0 }) {
       viewport={{ once: true }}
       transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
       whileHover={{ y: -4 }}
-      className="group relative aspect-[4/5] shrink-0 w-[168px] cursor-pointer overflow-hidden rounded-3xl text-white shadow-[0_16px_30px_-16px_rgba(30,15,5,0.4)]"
-      style={{ background: gradients[tone] }}
+      className="group relative aspect-[4/5] shrink-0 w-[168px] cursor-pointer overflow-hidden rounded-3xl bg-cover bg-center text-white shadow-[0_16px_30px_-16px_rgba(30,15,5,0.4)]"
+      style={resolvedImageUrl ? { backgroundImage: `url(${resolvedImageUrl})` } : { background: gradients[tone] }}
     >
       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/10 transition-opacity group-hover:from-black/65" />
       <div className="relative flex h-full flex-col justify-end p-4">

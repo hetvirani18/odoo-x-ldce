@@ -55,4 +55,8 @@ async function findOrCreate(cityData) {
     return findById(result.insertId);
 }
 
-module.exports = { findById, searchByName, getAll, findOrCreate };
+async function updateImageUrl(id, imageUrl) {
+    await db.query(`UPDATE ${TABLE_NAME} SET image_url = ? WHERE id = ?`, [imageUrl, id]);
+}
+
+module.exports = { findById, searchByName, getAll, findOrCreate, updateImageUrl };

@@ -75,14 +75,34 @@ async function search(cityName, filters = {}) {
             }
         );
 
-        const results = (placesRes.data || []).map((place) => ({
-            name: place.name || 'Local Attraction',
-            category: categoryFromKinds(place.kinds, filters.category || 'sightseeing'),
-            cost: null, // OpenTripMap doesn't provide pricing; unknown, not free
-            duration_hours: null,
-            description: place.wikipedia_extracts?.text || `Popular attraction in ${cityName}`,
-            image_url: place.preview?.source || null,
-        }));
+        // The radius list endpoint only returns xid/name/kinds/etc — no image or
+        // description. Those live on the per-place detail endpoint, so fetch it
+        // for each candidate (bounded by the `limit` above) to get real data.
+        const results = await Promise.all(
+            (placesRes.data || []).map(async (place) => {
+                let preview = null;
+                let extract = null;
+                try {
+                    const detailRes = await axios.get(
+                        `https://api.opentripmap.com/0.1/en/places/xid/${place.xid}`,
+                        { params: { apikey: OPENTRIPMAP_API_KEY }, timeout: 5000 }
+                    );
+                    preview = detailRes.data?.preview?.source || null;
+                    extract = detailRes.data?.wikipedia_extracts?.text || null;
+                } catch {
+                    // This place has no detail record — fall back to the list data only
+                }
+
+                return {
+                    name: place.name || 'Local Attraction',
+                    category: categoryFromKinds(place.kinds, filters.category || 'sightseeing'),
+                    cost: null, // OpenTripMap doesn't provide pricing; unknown, not free
+                    duration_hours: null,
+                    description: extract || `Popular attraction in ${cityName}`,
+                    image_url: preview,
+                };
+            })
+        );
 
         // maxCost filtering happens downstream in activity.service.js, once a
         // real/estimated cost has been assigned (this provider doesn't know price).

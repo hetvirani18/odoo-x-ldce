@@ -40,6 +40,7 @@ export default function LandingPage() {
             id: c.id,
             name: c.name,
             country: c.country,
+            imageUrl: c.image_url,
             tone: ['coral', 'teal', 'gold'][i % 3],
         }))
         : DEFAULT_REGIONS;
@@ -137,8 +138,10 @@ export default function LandingPage() {
                         {trips.slice(0, 6).map((t, i) => (
                             <TripCard
                                 key={t.id}
+                                id={t.id}
                                 name={t.name}
                                 dates={`${t.start_date} – ${t.end_date}`}
+                                photoUrl={t.cover_photo_url}
                                 tone={['coral', 'teal', 'gold'][i % 3]}
                                 index={i}
                                 onView={() => navigate(`/trips/${t.id}`)}

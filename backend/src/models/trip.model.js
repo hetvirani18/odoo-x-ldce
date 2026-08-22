@@ -17,6 +17,7 @@ const TABLE_NAME = 'trips';
 /**
  * @typedef {Object} TripView
  * @property {number} id
+ * @property {number} user_id
  * @property {string} name
  * @property {string} start_date
  * @property {string} end_date
@@ -81,6 +82,7 @@ function formatLocalDate(val) {
 function toTripView(row) {
     return {
         id: row.id,
+        user_id: row.user_id,
         name: row.name,
         start_date: formatLocalDate(row.start_date),
         end_date: formatLocalDate(row.end_date),

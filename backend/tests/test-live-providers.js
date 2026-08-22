@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { GEODB_API_KEY, OPENTRIPMAP_API_KEY, FLIGHTFARE_API_KEY } = require('./src/config/env');
+const { GEODB_API_KEY, OPENTRIPMAP_API_KEY, FLIGHTFARE_API_KEY } = require('../src/config/env');
 
 async function testGeoDb() {
     console.log('\n--- 1. Testing GeoDB Cities API ---');

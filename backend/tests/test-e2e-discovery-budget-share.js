@@ -1,14 +1,14 @@
 const http = require('http');
 const assert = require('assert');
 const jwt = require('jsonwebtoken');
-const app = require('./src/app');
-const { JWT_SECRET } = require('./src/config/env');
-const CityRepository = require('./src/repositories/city.repository');
-const ActivityRepository = require('./src/repositories/activity.repository');
-const TripRepository = require('./src/repositories/trip.repository');
-const StopRepository = require('./src/repositories/stop.repository');
-const TripActivityRepository = require('./src/repositories/tripActivity.repository');
-const CostEstimateRepository = require('./src/repositories/costEstimate.repository');
+const app = require('../src/app');
+const { JWT_SECRET } = require('../src/config/env');
+const CityRepository = require('../src/repositories/city.repository');
+const ActivityRepository = require('../src/repositories/activity.repository');
+const TripRepository = require('../src/repositories/trip.repository');
+const StopRepository = require('../src/repositories/stop.repository');
+const TripActivityRepository = require('../src/repositories/tripActivity.repository');
+const CostEstimateRepository = require('../src/repositories/costEstimate.repository');
 
 // Generate test auth token
 const testUser = { id: 42, email: 'traveler@globetrotter.test', role: 'user' };

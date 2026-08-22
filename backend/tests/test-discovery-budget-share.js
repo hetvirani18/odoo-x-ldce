@@ -1,14 +1,14 @@
 const assert = require('assert');
-const app = require('./src/app');
-const { calculateStopDuration } = require('./src/services/budget.service');
-const { toCityView } = require('./src/models/city.model');
-const { toActivityView } = require('./src/models/activity.model');
-const { toTripView, toPublicTripView } = require('./src/models/trip.model');
-const { toStopView } = require('./src/models/stop.model');
-const { toTripActivityView } = require('./src/models/tripActivity.model');
-const { toCostEstimateView } = require('./src/models/costEstimate.model');
-const { ERRORS } = require('./src/utils/AppError');
-const { rateFor } = require('./src/services/pricingProvider/costIndexPricingProvider');
+const app = require('../src/app');
+const { calculateStopDuration } = require('../src/services/budget.service');
+const { toCityView } = require('../src/models/city.model');
+const { toActivityView } = require('../src/models/activity.model');
+const { toTripView, toPublicTripView } = require('../src/models/trip.model');
+const { toStopView } = require('../src/models/stop.model');
+const { toTripActivityView } = require('../src/models/tripActivity.model');
+const { toCostEstimateView } = require('../src/models/costEstimate.model');
+const { ERRORS } = require('../src/utils/AppError');
+const { rateFor } = require('../src/services/pricingProvider/costIndexPricingProvider');
 
 async function runTests() {
     console.log('--- Starting Discovery, Budget & Share Unit/Logic Verification ---');

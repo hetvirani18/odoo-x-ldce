@@ -3,6 +3,7 @@ const TripRepository = require('../repositories/trip.repository');
 const StopRepository = require('../repositories/stop.repository');
 const TripActivityRepository = require('../repositories/tripActivity.repository');
 const CostEstimateRepository = require('../repositories/costEstimate.repository');
+const UserRepository = require('../repositories/user.repository');
 const { toPublicTripView, formatLocalDate } = require('../models/trip.model');
 const { toCostEstimateView } = require('../models/costEstimate.model');
 const { ERRORS } = require('../utils/AppError');
@@ -53,9 +54,12 @@ async function unshareTrip(tripId, requestingUserId) {
  */
 async function getPublicTrip(shareToken) {
     const trip = await TripRepository.findByShareToken(shareToken);
-    const stops = await StopRepository.findByTripId(trip.id);
-    const activities = await TripActivityRepository.findByTripId(trip.id);
-    const costEstimate = await CostEstimateRepository.findByTripId(trip.id);
+    const [stops, activities, costEstimate, owner] = await Promise.all([
+        StopRepository.findByTripId(trip.id),
+        TripActivityRepository.findByTripId(trip.id),
+        CostEstimateRepository.findByTripId(trip.id),
+        UserRepository.findById(trip.user_id),
+    ]);
 
     // Group activities by stop
     const activitiesByStop = new Map();
@@ -94,6 +98,10 @@ async function getPublicTrip(shareToken) {
 
     return {
         trip: toPublicTripView(trip),
+        owner: {
+            name: owner.name,
+            photo_url: owner.photo_url,
+        },
         stops: structuredStops,
         cost_estimate: costEstimate ? toCostEstimateView(costEstimate) : null,
     };

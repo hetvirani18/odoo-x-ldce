@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Avatar } from "../ui/ui.jsx";
+import { getInitials } from "../../lib/utils.js";
 
-export function AccountMenu({ name = "Het Virani", email = "hetvirani87@gmail.com", tone = "coral", items }) {
+export function AccountMenu({ name = "", email = "", photoUrl, tone = "coral", items }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -18,7 +19,7 @@ export function AccountMenu({ name = "Het Virani", email = "hetvirani87@gmail.co
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen((v) => !v)} className="cursor-pointer rounded-full transition-transform hover:scale-105">
-        <Avatar initials="HV" size={38} tone={tone} />
+        <Avatar initials={getInitials(name)} size={38} tone={tone} photoUrl={photoUrl} />
       </button>
 
       <AnimatePresence>

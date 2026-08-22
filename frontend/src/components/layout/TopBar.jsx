@@ -4,10 +4,13 @@ import { IconCompass, IconLogOut, IconPlus, IconUser } from "../ui/icons.jsx";
 import { Button } from "../ui/ui.jsx";
 import { ThemeToggle } from "./ThemeToggle.jsx";
 import { AccountMenu } from "./AccountMenu.jsx";
+import { useGetMeQuery } from "../../features/auth/authApi.js";
+import { resolveAssetUrl } from "../../lib/utils.js";
 
 export function TopBar({ onLogout }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { data: me } = useGetMeQuery();
   const links = [
     { path: "/", label: "Explore" },
     { path: "/trips", label: "My Trips" },
@@ -53,6 +56,9 @@ export function TopBar({ onLogout }) {
           </Button>
           <ThemeToggle />
           <AccountMenu
+            name={me?.user?.name}
+            email={me?.user?.email}
+            photoUrl={resolveAssetUrl(me?.user?.photo_url)}
             items={[
               { label: "View profile", icon: <IconUser size={15} className="text-ink-faint" />, onClick: () => navigate("/profile") },
               { label: "Log out", icon: <IconLogOut size={15} />, tone: "danger", onClick: onLogout },

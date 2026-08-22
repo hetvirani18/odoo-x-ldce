@@ -1,6 +1,9 @@
+import { useRef } from "react";
 import { motion } from "motion/react";
 import { Badge, Button, Card } from "./ui.jsx";
 import { IconArrowRight, IconCalendar, IconCamera, IconPin, IconWallet } from "./icons.jsx";
+import { resolveAssetUrl } from "../../lib/utils.js";
+import { useUploadTripPhotoMutation } from "../../features/trips/tripsApi.js";
 
 const gradients = {
   coral:
@@ -29,7 +32,24 @@ export function RegionCard({ name, country, tone = "coral", index = 0 }) {
   );
 }
 
-export function TripCard({ name, dates, status, budget, cities, tone = "coral", onView, index = 0 }) {
+export function TripCard({ id, name, dates, status, budget, cities, photoUrl, tone = "coral", onView, index = 0 }) {
+  const fileInputRef = useRef(null);
+  const [uploadPhoto, { isLoading: isUploadingPhoto }] = useUploadTripPhotoMutation();
+  const resolvedPhotoUrl = resolveAssetUrl(photoUrl);
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !id) return;
+    const formData = new FormData();
+    formData.append("photo", file);
+    try {
+      await uploadPhoto({ id, formData }).unwrap();
+    } catch {
+      // Ignored — the banner simply stays as-is if the upload fails.
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -38,18 +58,36 @@ export function TripCard({ name, dates, status, budget, cities, tone = "coral", 
       transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
     >
       <Card className="overflow-hidden">
-        <div className="group/banner relative h-28 w-full" style={{ background: gradients[tone] }}>
+        <div
+          className="group/banner relative h-28 w-full bg-cover bg-center"
+          style={resolvedPhotoUrl ? { backgroundImage: `url(${resolvedPhotoUrl})` } : { background: gradients[tone] }}
+        >
+          {resolvedPhotoUrl && <div className="absolute inset-0 bg-black/15" />}
           {cities && cities[0] && (
             <p className="absolute bottom-2.5 left-3.5 text-[11.5px] font-medium text-white/85">
               {cities[0]}
             </p>
           )}
-          <button
-            title="Set cover photo"
-            className="absolute right-2.5 top-2.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/25 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/banner:opacity-100"
-          >
-            <IconCamera size={15} />
-          </button>
+          {id && (
+            <>
+              <button
+                type="button"
+                title="Set cover photo"
+                disabled={isUploadingPhoto}
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute right-2.5 top-2.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-black/25 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover/banner:opacity-100 disabled:cursor-wait disabled:opacity-100"
+              >
+                <IconCamera size={15} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </>
+          )}
         </div>
         <div className="p-5">
           <div className="flex items-start justify-between gap-2">

@@ -6,11 +6,26 @@ const { toUserView } = require('../models/user.model');
  * Fetch platform statistics and top rankings concurrently
  */
 async function getStats() {
-    const [total_users, total_trips, top_cities, top_activities] = await Promise.all([
+    const [
+        total_users,
+        total_trips,
+        top_cities,
+        top_activities,
+        weekly_trip_trend,
+        weekly_user_signups,
+        trips_by_season,
+        trips_by_status,
+        users_by_role,
+    ] = await Promise.all([
         adminRepo.countUsers(),
         adminRepo.countTrips(),
         adminRepo.topCitiesByStops(5),
         adminRepo.topActivitiesByBookings(5),
+        adminRepo.weeklyTripCounts(8),
+        adminRepo.weeklyUserSignups(8),
+        adminRepo.tripsBySeason(),
+        adminRepo.tripsByStatus(),
+        adminRepo.usersByRole(),
     ]);
 
     return {
@@ -18,6 +33,11 @@ async function getStats() {
         total_trips,
         top_cities,
         top_activities,
+        weekly_trip_trend,
+        weekly_user_signups,
+        trips_by_season,
+        trips_by_status,
+        users_by_role,
     };
 }
 

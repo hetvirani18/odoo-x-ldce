@@ -12,6 +12,10 @@ export const activitiesApi = api.injectEndpoints({
             }),
             transformResponse: (res) => res.data || [],
         }),
+        getCityActivities: build.query({
+            query: (cityId) => `/cities/${cityId}/activities`,
+            transformResponse: (res) => res.data,
+        }),
         getActivity: build.query({
             query: (id) => `/activities/${id}`,
             transformResponse: (res) => res.data,
@@ -19,4 +23,8 @@ export const activitiesApi = api.injectEndpoints({
     }),
 });
 
-export const { useListActivitiesForCityQuery, useGetActivityQuery } = activitiesApi;
+export const {
+    useListActivitiesForCityQuery,
+    useGetCityActivitiesQuery,
+    useGetActivityQuery,
+} = activitiesApi;

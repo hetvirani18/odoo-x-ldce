@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const { db } = require('../database/db');
 const { TABLE_NAME } = require('../models/costEstimate.model');
 
 /**

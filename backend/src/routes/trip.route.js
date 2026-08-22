@@ -1,16 +1,33 @@
 const { Router } = require('express');
 const { z } = require('zod');
+const multer = require('multer');
 const asyncHandler = require('../middleware/asyncHandler');
 const { authenticate } = require('../middleware/auth.middleware');
 const validateRequest = require('../middleware/validateRequest.middleware');
 const { successResponse } = require('../utils/response');
+const { ERRORS } = require('../utils/AppError');
 const {
     createTrip,
     listTrips,
     getTrip,
     updateTrip,
     deleteTrip,
+    uploadCoverPhoto,
 } = require('../controllers/trip.controller');
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB max
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        if (!allowedTypes.includes(file.mimetype)) {
+            return cb(ERRORS.INVALID_FILE_TYPE, false);
+        }
+        cb(null, true);
+    },
+});
 const { getTripBudget, getTripExpenses } = require('../controllers/budget.controller');
 const { shareTrip, unshareTrip } = require('../controllers/share.controller');
 const { tripStopsRouter } = require('./stop.route');
@@ -80,6 +97,17 @@ tripRouter.delete(
     asyncHandler(async (req, res) => {
         await deleteTrip(Number(req.params.id), req.user.id);
         res.json(successResponse(null, 'Trip deleted successfully'));
+    })
+);
+
+// POST /api/trips/:id/photo
+tripRouter.post(
+    '/:id/photo',
+    authenticate,
+    upload.single('photo'),
+    asyncHandler(async (req, res) => {
+        const trip = await uploadCoverPhoto(Number(req.params.id), req.user.id, req.file);
+        res.json(successResponse(trip, 'Trip cover photo uploaded successfully'));
     })
 );
 

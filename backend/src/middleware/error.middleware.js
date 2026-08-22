@@ -2,11 +2,16 @@ const { AppError } = require('../utils/AppError');
 const { errorResponse } = require('../utils/response');
 
 function errorHandler(error, req, res, next) {
-    console.error(error);
-
     if (error instanceof AppError) {
+        // Expected client errors (bad input, missing/expired auth, not found, etc.) aren't
+        // logged as crashes — only genuine 5xx failures get the full stack trace.
+        if (error.statusCode >= 500) {
+            console.error(error);
+        }
         return res.status(error.statusCode).json(errorResponse(error.message, error.code));
     }
+
+    console.error(error);
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
         return res.status(401).json(errorResponse('Invalid authentication token', 20002));
     }

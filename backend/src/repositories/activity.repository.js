@@ -54,4 +54,21 @@ async function searchByCityName(cityName, filters = {}) {
     return rows;
 }
 
-module.exports = { findById, findByCityId, searchByCityName };
+async function create(input) {
+    const [result] = await db.query(
+        `INSERT INTO ${TABLE_NAME} (city_id, name, category, cost, duration_hours, description, image_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+            input.cityId,
+            input.name,
+            input.category || 'sightseeing',
+            input.cost ?? 25.0,
+            input.durationHours ?? 2.0,
+            input.description ?? null,
+            input.imageUrl ?? null,
+        ]
+    );
+    return findById(result.insertId);
+}
+
+module.exports = { findById, findByCityId, searchByCityName, create };

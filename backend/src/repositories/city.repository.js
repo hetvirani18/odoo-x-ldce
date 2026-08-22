@@ -29,4 +29,30 @@ async function getAll() {
     return rows;
 }
 
-module.exports = { findById, searchByName, getAll };
+async function findOrCreate(cityData) {
+    const [existing] = await db.query(
+        `SELECT * FROM ${TABLE_NAME} WHERE LOWER(name) = LOWER(?) LIMIT 1`,
+        [cityData.name]
+    );
+
+    if (existing.length > 0) {
+        return existing[0];
+    }
+
+    const [result] = await db.query(
+        `INSERT INTO ${TABLE_NAME} (name, country, lat, lng, cost_index, popularity)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+            cityData.name,
+            cityData.country || 'Global',
+            cityData.lat ?? null,
+            cityData.lng ?? null,
+            cityData.cost_index || 'medium',
+            cityData.popularity || 50,
+        ]
+    );
+
+    return findById(result.insertId);
+}
+
+module.exports = { findById, searchByName, getAll, findOrCreate };

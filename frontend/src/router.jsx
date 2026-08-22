@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import AppLayout from './components/layout/AppLayout.jsx';
 import AdminLayout from './components/layout/AdminLayout.jsx';
 import AuthLayout from './components/layout/AuthLayout.jsx';
@@ -21,6 +21,8 @@ import CalendarPage from './pages/CalendarPage.jsx';
 import PublicTripPage from './pages/PublicTripPage.jsx';
 import AdminLoginPage from './pages/admin/AdminLoginPage.jsx';
 import AdminUsersPage from './pages/admin/AdminUsersPage.jsx';
+import AdminCitiesPage from './pages/admin/AdminCitiesPage.jsx';
+import AdminActivitiesPage from './pages/admin/AdminActivitiesPage.jsx';
 import AdminStatsPage from './pages/admin/AdminStatsPage.jsx';
 
 export const router = createBrowserRouter([
@@ -31,6 +33,7 @@ export const router = createBrowserRouter([
             { path: '/register', element: <RegisterPage /> },
             { path: '/forgot-password', element: <ForgotPasswordPage /> },
             { path: '/reset-password', element: <ResetPasswordPage /> },
+            { path: '/admin/login', element: <AdminLoginPage /> },
         ],
     },
     {
@@ -53,15 +56,18 @@ export const router = createBrowserRouter([
         ],
     },
     { path: '/t/:shareToken', element: <PublicTripPage /> },
-    { path: '/admin/login', element: <AdminLoginPage /> },
     {
         element: <AdminRoute />,
         children: [
             {
                 element: <AdminLayout />,
                 children: [
+                    { path: '/admin', element: <Navigate to="/admin/users" replace /> },
                     { path: '/admin/users', element: <AdminUsersPage /> },
+                    { path: '/admin/cities', element: <AdminCitiesPage /> },
+                    { path: '/admin/activities', element: <AdminActivitiesPage /> },
                     { path: '/admin/stats', element: <AdminStatsPage /> },
+                    { path: '/admin/profile', element: <ProfilePage /> },
                 ],
             },
         ],

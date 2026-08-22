@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TopBar } from "../components/TopBar.jsx";
 import { Avatar, Button, Field, Input, SectionHeading } from "../components/ui.jsx";
 import { TripCard } from "../components/cards.jsx";
 import { previousTrips, upcomingTrips, ongoingTrips } from "../data/mock.js";
-import { IconEdit, IconGlobe, IconMail, IconPhone, IconPin } from "../components/icons.jsx";
+import { IconCamera, IconEdit, IconGlobe, IconMail, IconPhone, IconPin } from "../components/icons.jsx";
 
 const preplanned = [...upcomingTrips, ...ongoingTrips];
 
@@ -19,6 +19,17 @@ export function ProfileScreen({ onNavigate }) {
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState(defaultProfile);
   const [draft, setDraft] = useState(defaultProfile);
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
 
   return (
     <div>
@@ -32,7 +43,24 @@ export function ProfileScreen({ onNavigate }) {
           transition={{ duration: 0.4 }}
           className="flex flex-col gap-6 rounded-[28px] border border-border-soft bg-surface p-6 sm:flex-row sm:p-8"
         >
-          <Avatar initials="HV" size={92} />
+          <div className="group/avatar relative h-fit shrink-0 self-center sm:self-start">
+            <Avatar initials="HV" size={92} photoUrl={photoUrl} />
+            <button
+              type="button"
+              title="Change photo"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-[1px] transition-opacity group-hover/avatar:opacity-100"
+            >
+              <IconCamera size={22} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+          </div>
           <div className="flex-1">
             <AnimatePresence mode="wait" initial={false}>
               {!editing ? (

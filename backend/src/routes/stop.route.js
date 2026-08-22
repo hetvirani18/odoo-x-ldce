@@ -10,6 +10,10 @@ const {
     updateStop,
     deleteStop,
     reorderStops,
+    addActivityToStop,
+    listStopActivities,
+    updateStopActivity,
+    removeActivityFromStop,
 } = require('../controllers/itinerary.controller');
 
 const SCHEMA = {
@@ -27,6 +31,15 @@ const SCHEMA = {
     }),
     REORDER_STOPS: z.object({
         stop_ids: z.array(z.number().int().positive()).min(1, 'stop_ids array cannot be empty'),
+    }),
+    ASSIGN_ACTIVITY: z.object({
+        activity_id: z.number().int().positive('activity_id must be a positive integer'),
+        scheduled_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'scheduled_date must be in YYYY-MM-DD format'),
+        scheduled_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'scheduled_time must be HH:MM or HH:MM:SS format').optional().nullable(),
+    }),
+    UPDATE_STOP_ACTIVITY: z.object({
+        scheduled_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'scheduled_date must be in YYYY-MM-DD format').optional(),
+        scheduled_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'scheduled_time must be HH:MM or HH:MM:SS format').optional().nullable(),
     }),
 };
 
@@ -49,6 +62,54 @@ stopRouter.delete(
     asyncHandler(async (req, res) => {
         await deleteStop(Number(req.params.id), req.user.id);
         res.json(successResponse(null, 'Stop deleted successfully'));
+    })
+);
+
+// Activities under a stop: /api/stops/:stopId/activities
+stopRouter.post(
+    '/:stopId/activities',
+    authenticate,
+    validateRequest({ body: SCHEMA.ASSIGN_ACTIVITY }),
+    asyncHandler(async (req, res) => {
+        const activity = await addActivityToStop(Number(req.params.stopId), req.user.id, req.body);
+        res.status(201).json(successResponse(activity, 'Activity scheduled successfully'));
+    })
+);
+
+stopRouter.get(
+    '/:stopId/activities',
+    authenticate,
+    asyncHandler(async (req, res) => {
+        const activities = await listStopActivities(Number(req.params.stopId), req.user.id);
+        res.json(successResponse(activities, 'Stop activities fetched successfully'));
+    })
+);
+
+stopRouter.put(
+    '/:stopId/activities/:activityId',
+    authenticate,
+    validateRequest({ body: SCHEMA.UPDATE_STOP_ACTIVITY }),
+    asyncHandler(async (req, res) => {
+        const updated = await updateStopActivity(
+            Number(req.params.stopId),
+            Number(req.params.activityId),
+            req.user.id,
+            req.body
+        );
+        res.json(successResponse(updated, 'Scheduled activity updated successfully'));
+    })
+);
+
+stopRouter.delete(
+    '/:stopId/activities/:activityId',
+    authenticate,
+    asyncHandler(async (req, res) => {
+        await removeActivityFromStop(
+            Number(req.params.stopId),
+            Number(req.params.activityId),
+            req.user.id
+        );
+        res.json(successResponse(null, 'Activity removed from stop successfully'));
     })
 );
 

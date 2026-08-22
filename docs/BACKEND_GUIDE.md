@@ -732,6 +732,7 @@ module.exports = tripRouter;
 | Module | Routes | Notes |
 |---|---|---|
 | Auth | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password` | bcrypt (12 rounds) + JWT as httpOnly cookie, no refresh token; reset flow uses `password_reset_tokens` + `email.service.js` |
+| User | `GET /api/users/me`, `PUT /api/users/me`, `POST /api/users/me/photo`, `DELETE /api/users/me` | authenticated self-profile management + photo provider |
 | Trip | `POST /api/trips`, `GET /api/trips`, `GET /api/trips/:id`, `PUT /api/trips/:id`, `DELETE /api/trips/:id` | ownership check in controller |
 | Stop / Itinerary | `POST /api/trips/:tripId/stops`, `PUT /api/stops/:id`, `DELETE /api/stops/:id`, `POST /api/stops/:id/activities` | nested under trip |
 | City | `GET /api/cities/search?q=` | uses `city.service.js` (GeoDB + seed fallback) |

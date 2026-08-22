@@ -22,6 +22,8 @@ const ERRORS = {
     RESOURCE_NOT_FOUND:    new AppError('Resource not found', 10003, 404),
     ROUTE_NOT_FOUND:       new AppError('Route not found', 10004, 404),
     RATE_LIMIT_EXCEEDED:   new AppError('Too many requests, please try again later', 10005, 429),
+    FILE_REQUIRED:         new AppError('No file uploaded', 10006, 400),
+    INVALID_FILE_TYPE:     new AppError('Invalid file type. Only JPEG, PNG, and WebP images are allowed', 10007, 400),
 
     // Auth (2xxxx)
     NO_TOKEN_PROVIDED:     new AppError('No authentication token provided', 20001, 401),
